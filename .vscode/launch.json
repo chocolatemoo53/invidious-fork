@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "lldb-dap",
+      "type": "lldb",
       "request": "launch",
       "name": "crystal: debug current file (lldb)",
       // "preLaunchTask": "crystal: build current file (debug)",
@@ -11,18 +11,6 @@
       "cwd": "${workspaceFolder}",
       "initCommands": [
         "command script import ${workspaceFolder}/crystal_formatters.py"
-      ]
-    },
-    {
-      "type": "gcc",
-      "request": "launch",
-      "name": "crystal: debug current file (gdb)",
-      // "preLaunchTask": "crystal: build current file (debug)",
-      "program": "${workspaceFolder}/invidious",
-      "args": [],
-      "cwd": "${workspaceFolder}",
-      "initCommands": [
-        "command script import ${workspaceFolder}/crystal_formatters_gdb.py"
       ]
     }
   ]
