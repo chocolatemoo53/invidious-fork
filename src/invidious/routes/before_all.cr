@@ -77,12 +77,6 @@ module Invidious::Routes::BeforeAll
       extra_media_csp, extra_connect_csp = BackendInfo.get_csp(env.get("current_companion").as(Int32))
     end
 
-    # Allow media resources to be loaded from google servers
-    # TODO: check if *.youtube.com can be removed
-    if CONFIG.disabled?("local") || !preferences.local
-      extra_media_csp += " https://*.googlevideo.com:443 https://*.youtube.com:443"
-    end
-
     # Only allow the pages at /embed/* to be embedded
     if env.request.resource.starts_with?("/embed")
       frame_ancestors = "'self' file: http: https:"
@@ -103,7 +97,7 @@ module Invidious::Routes::BeforeAll
       "font-src 'self' data:",
       "connect-src 'self'" + extra_connect_csp,
       "manifest-src 'self'",
-      "media-src 'self' blob:",
+      "media-src 'self' blob:" + extra_media_csp,
       "child-src 'self' blob:",
       "frame-src 'self'",
       "frame-ancestors " + frame_ancestors,
