@@ -1,4 +1,11 @@
 module Invidious::Routes::BeforeAll
+  private COMPANION_PREFIXES = [] of String
+
+  CONFIG.invidious_companion.each_with_index do |_, i|
+    prefix = CONFIG.invidious_companion_prefix + "#{i + 1}"
+    COMPANION_PREFIXES << prefix
+  end
+
   def self.handle(env)
     preferences = Preferences.from_json("{}")
     host = env.request.headers["Host"]
@@ -25,13 +32,12 @@ module Invidious::Routes::BeforeAll
     extra_connect_csp = ""
 
     if CONFIG.invidious_companion.present?
-      current_companion_d = host.split(".")[0].scan(/(\d+)$/).last?.try &.[0].to_i
+      current_companion_d = host.split(":")[0].split(".")[0]
 
-      if current_companion_d
-        current_companion_d = current_companion_d - 1
+      if index = COMPANION_PREFIXES.index(current_companion_d)
         env.set "using_domain", true
-        env.set "current_companion", current_companion_d
-        env.set "companion_public_url", CONFIG.invidious_companion[current_companion_d].public_url.to_s
+        env.set "current_companion", index
+        env.set "companion_public_url", CONFIG.invidious_companion[index].public_url.to_s
       else
         if !env.request.cookies[CONFIG.server_id_cookie_name]?
           env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(host)
