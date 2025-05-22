@@ -121,7 +121,7 @@
                         <% host_backend = env.request.headers["Host"].sub(/([^.]+)(\d+)/, "\\1#{index+1}") %>
                         <% is_current_backend_host = host_backend == env.request.headers["Host"] %>
                             <a href="<%= scheme %>://<%= host_backend %><%= env.request.resource %>" style="<%= is_current_backend_host ? "text-decoration-line: underline;" : "" %> display: inline-block;">
-                                Backend<%= HTML.escape((index + 1).to_s) %> <%= HTML.escape(companion.note) %>
+                                <%= HTML.escape(CONFIG.backend_name_prefix + (index + 1).to_s) %> <%= HTML.escape(companion.note) %>
                                 <span style="color:
                                     <% if status[index] == 0 %> #fd4848; <% end %>
                                     <% if status[index] == 1 %> #d06925; <% end %>
@@ -136,7 +136,7 @@
                         <% current_page = env.get("current_page") %>
                         <% CONFIG.invidious_companion.each_with_index do | companion, index | %>
                             <a href="/switchbackend?backend_id=<%= index.to_s %>&referer=<%= current_page %>" style="<%= current_backend == index ? "text-decoration-line: underline;" : "" %> display: inline-block;">
-                                Backend<%= HTML.escape((index + 1).to_s) %> <%= HTML.escape(companion.note) %>
+                                <%= HTML.escape(CONFIG.backend_name_prefix + (index + 1).to_s) %> <%= HTML.escape(companion.note) %>
                                 <span style="color:
                                     <% if status[index] == 0 %> #fd4848; <% end %>
                                     <% if status[index] == 1 %> #d06925; <% end %>
