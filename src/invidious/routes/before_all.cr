@@ -57,7 +57,7 @@ module Invidious::Routes::BeforeAll
         companion_status = BackendInfo.get_status
 
         if companion_status[current_companion] != 2
-          alive_companion = companion_status.index(2)
+          alive_companion = companion_status.index(2, offset: current_companion)
           if alive_companion
             env.set "companion_switched", true
             current_companion = alive_companion

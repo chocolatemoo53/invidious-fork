@@ -531,7 +531,7 @@
     "username_empty": "Username cannot be empty",
     "username_is_the_same": "This is your username, use another one",
     "username_taken": "Username is already taken, use another one",
-    "backend_unavailable": "The backend you selected is unavailable. You have been redirected to the next one",
+    "backend_unavailable": "The backend you selected is unavailable. You have been redirected to another one",
     "timeline_parse_error_placeholder_heading": "Unable to parse item",
     "timeline_parse_error_placeholder_message": "Invidious encountered an error while trying to parse this item. For more information see below:",
     "timeline_parse_error_show_technical_details": "Show technical details",
