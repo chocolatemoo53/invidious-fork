@@ -51,7 +51,7 @@ jobs:
           key: cache-${{ hashFiles('./Dockerfile') }}
 
       - name: Inject cache into Docker
-        uses: https://github.com/reproducible-containers/buildkit-cache-dance@v3.1.0
+        uses: https://github.com/reproducible-containers/buildkit-cache-dance@v3.2.0
         with:
           cache-map: |
             {
