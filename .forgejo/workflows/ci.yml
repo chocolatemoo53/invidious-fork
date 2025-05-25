@@ -29,7 +29,7 @@ jobs:
         name: Setup Docker BuildX system
 
       - name: Login to Docker Container Registry
-        uses: https://code.forgejo.org/docker/login-action@v3.1.0
+        uses: https://code.forgejo.org/docker/login-action@v3.4.0
         with:
           registry: git.nadeko.net
           username: ${{ secrets.USERNAME }}
