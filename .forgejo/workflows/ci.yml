@@ -2,8 +2,6 @@ name: "Invidious CI"
 
 on:
   workflow_dispatch:
-  # schedule:
-  #   - cron: '0 7 * * 0'
   push:
     branches:
       - "master"
@@ -43,6 +41,23 @@ jobs:
           tags: |
             type=sha,format=short,prefix={{date 'YYYY.MM.DD'}}-,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+
+      - name: Cache .o files for compilation
+        uses: https://code.forgejo.org/actions/cache@v4
+        id: cache
+        with:
+          path: |
+            codegen-cache
+          key: cache-${{ hashFiles('./Dockerfile') }}
+
+      - name: Inject cache into Docker
+        uses: https://github.com/reproducible-containers/buildkit-cache-dance@v3.1.0
+        with:
+          cache-map: |
+            {
+              "codegen-cache": "/root/.cache/crystal"
+            }
+          skip-extraction: ${{ steps.cache.outputs.cache-hit }}
 
       - uses: https://code.forgejo.org/docker/build-push-action@v6
         name: Build images

@@ -22,7 +22,7 @@ COPY ./videojs-dependencies.yml ./videojs-dependencies.yml
 
 RUN --mount=type=cache,target=/root/.cache/crystal \
         crystal build ./src/invidious.cr \
-        --release --mcpu=x86-64-v2 \
+        -O3 -Drelease --mcpu=x86-64-v2 \
         --static --warnings all \
         --link-flags "-lxml2 -llzma";
 
