@@ -32,50 +32,59 @@ module Invidious::Routes::BeforeAll
     extra_connect_csp = ""
 
     if CONFIG.invidious_companion.present?
-      current_companion_d = host.split(":")[0].split(".")[0]
+      if !{
+           "/sb/",
+           "/vi/",
+           "/s_p/",
+           "/yts/",
+           "/ggpht/",
+         }.any? { |r| env.request.resource.starts_with? r }
+        current_companion_d = host.split(":")[0].split(".")[0]
 
-      if index = COMPANION_PREFIXES.index(current_companion_d)
-        env.set "using_domain", true
-        env.set "current_companion", index
-        env.set "companion_public_url", CONFIG.invidious_companion[index].public_url.to_s
-      else
-        if !env.request.cookies[CONFIG.server_id_cookie_name]?
-          env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(host)
-        end
+        if index = COMPANION_PREFIXES.index(current_companion_d)
+          env.set "using_domain", true
+          env.set "current_companion", index
+          env.set "companion_public_url", CONFIG.invidious_companion[index].public_url.to_s
+        else
+          if !env.request.cookies[CONFIG.server_id_cookie_name]?
+            env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(host)
+          end
 
-        begin
-          current_companion = env.request.cookies[CONFIG.server_id_cookie_name].value.try &.to_i
-        rescue
-          working_ends = BackendInfo.get_working_ends
-          current_companion = working_ends.sample
-        end
+          begin
+            current_companion = env.request.cookies[CONFIG.server_id_cookie_name].value.try &.to_i
+          rescue
+            working_ends = BackendInfo.get_working_ends
+            current_companion = working_ends.sample
+          end
 
-        if current_companion > CONFIG.invidious_companion.size
-          current_companion = current_companion % CONFIG.invidious_companion.size
-          env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(host, current_companion)
-        end
-
-        companion_status = BackendInfo.get_status
-
-        if companion_status[current_companion] != 2
-          alive_companion = companion_status.index(2, offset: current_companion)
-          if alive_companion
-            env.set "companion_switched", true
-            current_companion = alive_companion
+          if current_companion > CONFIG.invidious_companion.size
+            current_companion = current_companion % CONFIG.invidious_companion.size
             env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(host, current_companion)
+          end
+
+          companion_status = BackendInfo.get_status
+
+          if companion_status[current_companion] != BackendInfo::Status::Working.to_i
+            current_companion = 0 if current_companion == companion_status.size - 1
+            alive_companion = companion_status.index(BackendInfo::Status::Working.to_i, offset: current_companion)
+            if alive_companion
+              env.set "companion_switched", true
+              current_companion = alive_companion
+              env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(host, current_companion)
+            end
+          end
+
+          env.set "current_companion", current_companion
+
+          if host.split(".").last == "i2p"
+            env.set "companion_public_url", CONFIG.invidious_companion[current_companion].i2p_public_url.to_s
+          else
+            env.set "companion_public_url", CONFIG.invidious_companion[current_companion].public_url.to_s
           end
         end
 
-        env.set "current_companion", current_companion
-
-        if host.split(".").last == "i2p"
-          env.set "companion_public_url", CONFIG.invidious_companion[current_companion].i2p_public_url.to_s
-        else
-          env.set "companion_public_url", CONFIG.invidious_companion[current_companion].public_url.to_s
-        end
+        extra_media_csp, extra_connect_csp = BackendInfo.get_csp(env.get("current_companion").as(Int32))
       end
-
-      extra_media_csp, extra_connect_csp = BackendInfo.get_csp(env.get("current_companion").as(Int32))
     end
 
     # Only allow the pages at /embed/* to be embedded

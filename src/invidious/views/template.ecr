@@ -123,9 +123,8 @@
                             <a href="<%= scheme %>://<%= host_backend %><%= env.request.resource %>" style="<%= is_current_backend_host ? "text-decoration-line: underline;" : "" %> display: inline-block;">
                                 <%= HTML.escape(CONFIG.backend_name_prefix + (index + 1).to_s) %> <%= HTML.escape(companion.note) %>
                                 <span style="color:
-                                    <% if status[index] == 0 %> #fd4848; <% end %>
-                                    <% if status[index] == 1 %> #d06925; <% end %>
-                                    <% if status[index] == 2 %> #42ae3c; <% end %>
+                                    <% if status[index] == BackendInfo::Status::Dead.to_i %> #fd4848; <% end %>
+                                    <% if status[index] == BackendInfo::Status::Working.to_i %> #42ae3c; <% end %>
                                 ">•</span>
                             </a>
                             <% if !(index == CONFIG.invidious_companion.size-1) %>
@@ -138,9 +137,8 @@
                             <a href="/switchbackend?backend_id=<%= index.to_s %>&referer=<%= current_page %>" style="<%= current_backend == index ? "text-decoration-line: underline;" : "" %> display: inline-block;">
                                 <%= HTML.escape(CONFIG.backend_name_prefix + (index + 1).to_s) %> <%= HTML.escape(companion.note) %>
                                 <span style="color:
-                                    <% if status[index] == 0 %> #fd4848; <% end %>
-                                    <% if status[index] == 1 %> #d06925; <% end %>
-                                    <% if status[index] == 2 %> #42ae3c; <% end %>
+                                    <% if status[index] == BackendInfo::Status::Dead.to_i %> #fd4848; <% end %>
+                                    <% if status[index] == BackendInfo::Status::Working.to_i %> #42ae3c; <% end %>
                                 ">•</span>
                             </a>
                             <% if !(index == CONFIG.invidious_companion.size-1) %>
