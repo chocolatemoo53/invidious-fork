@@ -46,7 +46,8 @@ module Invidious::Routes::BeforeAll
         begin
           current_companion = env.request.cookies[CONFIG.server_id_cookie_name].value.try &.to_i
         rescue
-          current_companion = rand(CONFIG.invidious_companion.size)
+          working_ends = BackendInfo.get_working_ends
+          current_companion = working_ends.sample
         end
 
         if current_companion > CONFIG.invidious_companion.size

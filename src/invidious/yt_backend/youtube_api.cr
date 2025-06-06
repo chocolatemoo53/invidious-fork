@@ -689,7 +689,8 @@ module YoutubeAPI
 
     begin
       if env.nil?
-        current_companion = rand(CONFIG.invidious_companion.size)
+        working_ends = BackendInfo.get_working_ends
+        current_companion = working_ends.sample
       else
         current_companion = env.get("current_companion").as(Int32)
       end
