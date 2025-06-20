@@ -46,8 +46,9 @@ struct YoutubeConnectionPool
   end
 end
 
-struct CompanionConnectionPool
+class CompanionConnectionPool
   property pool : DB::Pool(HTTP::Client)
+  property companion : URI
 
   def initialize(companion, capacity = 5, timeout = 5.0)
     options = DB::Pool::Options.new(
@@ -57,8 +58,10 @@ struct CompanionConnectionPool
       checkout_timeout: timeout
     )
 
+    @companion = companion.private_url
+
     @pool = DB::Pool(HTTP::Client).new(options) do
-      next make_client(companion.private_url, use_http_proxy: false)
+      next make_client(@companion, use_http_proxy: false)
     end
   end
 
@@ -70,10 +73,7 @@ struct CompanionConnectionPool
     rescue ex
       conn.close
 
-      scheme = "https" if conn.tls || "http"
-      same_companion = "#{scheme}://#{conn.host}:#{conn.port}"
-
-      conn = make_client(URI.parse(same_companion), use_http_proxy: false)
+      conn = make_client(@companion, use_http_proxy: false)
 
       response = yield conn
     ensure
