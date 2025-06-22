@@ -222,7 +222,7 @@ class Config
 
   property tokens_server : String = ""
 
-  property video_cache : VideoCacheConfig
+  property video_cache : VideoCacheConfig = VideoCacheConfig.from_yaml("")
 
   class VideoCacheConfig
     include YAML::Serializable
