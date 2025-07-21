@@ -62,7 +62,7 @@ module Invidious::Routes::BeforeAll
           end
 
           if current_companion > CONFIG.invidious_companion.size
-            current_companion = current_companion % CONFIG.invidious_companion.size
+            current_companion = current_companion % CONFIG.invidious_companion.size - 1
             env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(host, current_companion)
           end
 
