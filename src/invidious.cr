@@ -166,7 +166,7 @@ Invidious::Database.check_integrity(CONFIG)
   {% puts run("../scripts/minify-js.cr").stringify %}
   JS_PATH="js/minified"
 {% else %}
-  JS_PATH="js"
+  JS_PATH = "js"
 {% end %}
 
 {% if !flag?(:skip_videojs_download) %}
