@@ -75,14 +75,19 @@ end
 
 HMAC_KEY = CONFIG.hmac_key
 
-PG_DB = DB.open CONFIG.database_url
-
-ARCHIVE_URL     = URI.parse("https://archive.org")
-PUBSUB_URL      = URI.parse("https://pubsubhubbub.appspot.com")
-REDDIT_URL      = URI.parse("https://www.reddit.com")
-YT_URL          = URI.parse("https://www.youtube.com")
+PG_DB = begin
+  DB.open CONFIG.database_url
+rescue ex
+  puts "Failed to connect to PostgreSQL database: #{ex.cause.try &.message}"
+  puts "Check your 'config.yml' database settings or PostgreSQL settings."
+  exit(1)
+end
+ARCHIVE_URL = URI.parse("https://archive.org")
+PUBSUB_URL  = URI.parse("https://pubsubhubbub.appspot.com")
+REDDIT_URL  = URI.parse("https://www.reddit.com")
+YT_URL      = URI.parse("https://www.youtube.com")
 PUBSUB_HOST_URL = CONFIG.pubsub_domain
-HOST_URL        = make_host_url(Kemal.config)
+HOST_URL    = make_host_url(Kemal.config)
 
 CHARS_SAFE         = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 TEST_IDS           = {"AgbeGFYluEA", "BaW_jenozKc", "a9LDPn-MO4I", "ddFvjfvPnqk", "iqKdEhx-dD4"}
@@ -249,8 +254,8 @@ error 404 do |env|
   Invidious::Routes::ErrorRoutes.error_404(env)
 end
 
-error 500 do |env, ex|
-  error_template(500, ex)
+error 500 do |env, exception|
+  error_template(500, exception)
 end
 
 static_headers do |env|

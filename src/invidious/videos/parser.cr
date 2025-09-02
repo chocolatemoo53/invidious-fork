@@ -82,7 +82,7 @@ def extract_video_info(video_id : String, env : HTTP::Server::Context | Nil = ni
         "reason"  => JSON::Any.new(reason),
       }
     end
-  elsif video_id != player_response.dig("videoDetails", "videoId")
+  elsif video_id != player_response.dig?("videoDetails", "videoId")
     # YouTube may return a different video player response than expected.
     # See: https://github.com/TeamNewPipe/NewPipe/issues/8713
     # Line to be reverted if one day we solve the video not available issue.
@@ -109,21 +109,34 @@ def extract_video_info(video_id : String, env : HTTP::Server::Context | Nil = ni
   params["reason"] = JSON::Any.new(reason) if reason
 
   if !CONFIG.invidious_companion.present?
-    if player_response["streamingData"]? && player_response.dig?("streamingData", "adaptiveFormats", 0, "url").nil?
+    if player_response.dig?("streamingData", "adaptiveFormats", 0, "url").nil?
       LOGGER.warn("Missing URLs for adaptive formats, falling back to other YT clients.")
-      players_fallback = [YoutubeAPI::ClientType::TvHtml5, YoutubeAPI::ClientType::WebMobile]
+      players_fallback = {YoutubeAPI::ClientType::TvSimply, YoutubeAPI::ClientType::WebMobile}
+
       players_fallback.each do |player_fallback|
         client_config.client_type = player_fallback
-        player_fallback_response = try_fetch_streaming_data(video_id, client_config, env)
-        if player_fallback_response && player_fallback_response["streamingData"]? &&
-           player_fallback_response.dig?("streamingData", "adaptiveFormats", 0, "url")
+
+        next if !(player_fallback_response = try_fetch_streaming_data(video_id, client_config, env))
+
+        adaptive_formats = player_fallback_response.dig?("streamingData", "adaptiveFormats")
+        if adaptive_formats && (adaptive_formats.dig?(0, "url") || adaptive_formats.dig?(0, "signatureCipher"))
           streaming_data = player_response["streamingData"].as_h
-          streaming_data["adaptiveFormats"] = player_fallback_response["streamingData"]["adaptiveFormats"]
+          streaming_data["adaptiveFormats"] = adaptive_formats
           player_response["streamingData"] = JSON::Any.new(streaming_data)
           break
         end
+      rescue InfoException
+        next LOGGER.warn("Failed to fetch streams with #{player_fallback}")
       end
     end
+
+    # Seems like video page can still render even without playable streams.
+    # its better than nothing.
+    #
+    # # Were we able to find playable video streams?
+    # if player_response.dig?("streamingData", "adaptiveFormats", 0, "url").nil?
+    #   # No :(
+    # end
   end
 
   {"captions", "playabilityStatus", "playerConfig", "storyboards"}.each do |f|
@@ -134,7 +147,11 @@ def extract_video_info(video_id : String, env : HTTP::Server::Context | Nil = ni
   if streaming_data = player_response["streamingData"]?
     %w[formats adaptiveFormats].each do |key|
       streaming_data.as_h[key]?.try &.as_a.each do |format|
-        format.as_h["url"] = JSON::Any.new(convert_url(format))
+        format = format.as_h
+        if format["url"]?.nil?
+          format["url"] = format["signatureCipher"]
+        end
+        format["url"] = JSON::Any.new(convert_url(format))
       end
     end
 
@@ -154,7 +171,7 @@ def try_fetch_streaming_data(id : String, client_config : YoutubeAPI::ClientConf
   playability_status = response["playabilityStatus"]["status"]
   LOGGER.debug("try_fetch_streaming_data: [#{id}] Got playabilityStatus == #{playability_status}.")
 
-  if id != response.dig("videoDetails", "videoId")
+  if id != response.dig?("videoDetails", "videoId")
     # YouTube may return a different video player response than expected.
     # See: https://github.com/TeamNewPipe/NewPipe/issues/8713
     raise InfoException.new(
