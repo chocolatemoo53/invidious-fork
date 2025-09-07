@@ -150,7 +150,7 @@ module Invidious::Routes::PreferencesRoute
 
       delete = [] of Int32
       hidden_channels.each_with_index do |ucid, idx|
-        u = ucid.rstrip("\r")
+        u = ucid.rstrip("\r").rstrip(" ")
 
         if (u == "") || (u == "\r")
           delete << idx
