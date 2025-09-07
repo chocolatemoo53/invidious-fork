@@ -1,6 +1,13 @@
 {% skip_file if flag?(:api_only) %}
 
 module Invidious::Routes::Feeds
+  enum TrendingTypes
+    Default
+    Music
+    Gaming
+    Movies
+  end
+
   def self.view_all_playlists_redirect(env)
     env.redirect "/feed/playlists"
   end
@@ -44,13 +51,14 @@ module Invidious::Routes::Feeds
   end
 
   def self.trending(env)
-    locale = env.get("preferences").as(Preferences).locale
+    preferences = env.get("preferences").as(Preferences)
+    locale = preferences.locale
 
     trending_type = env.params.query["type"]?
-    trending_type ||= "Default"
+    trending_type ||= preferences.default_trending_type.to_s
 
     region = env.params.query["region"]?
-    region ||= env.get("preferences").as(Preferences).region
+    region ||= preferences.region
 
     begin
       trending, plid = fetch_trending(trending_type, region, locale)

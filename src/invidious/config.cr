@@ -55,6 +55,8 @@ struct ConfigPreferences
   property enable_dearrow : Bool = false
   @[YAML::Field(ignore: true)]
   property hidden_channels : Array(String)? = nil
+  @[YAML::Field(ignore: true)]
+  property default_trending_type : Invidious::Routes::Feeds::TrendingTypes = Invidious::Routes::Feeds::TrendingTypes::Default
 
   def to_tuple
     {% begin %}

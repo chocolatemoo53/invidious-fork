@@ -168,6 +168,9 @@ module Invidious::Routes::PreferencesRoute
       delete.reverse_each { |i| hidden_channels.delete_at(i) }
     end
 
+    default_trending_type = env.params.body["default_trending_type"]?.try &.as(String)
+    default_trending_type ||= Invidious::Routes::Feeds::TrendingTypes::Default
+
     # Convert to JSON and back again to take advantage of converters used for compatibility
     preferences = Preferences.from_json({
       annotations:                 annotations,
@@ -205,6 +208,7 @@ module Invidious::Routes::PreferencesRoute
       show_nick:                   show_nick,
       save_player_pos:             save_player_pos,
       hidden_channels:             hidden_channels,
+      default_trending_type:       default_trending_type,
     }.to_json)
 
     if user = env.get? "user"

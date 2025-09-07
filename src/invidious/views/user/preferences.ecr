@@ -204,6 +204,17 @@
                 </div>
             <% end %>
 
+            <div class="pure-control-group">
+                <label for="default_trending_type"><%= translate(locale, "preferences_default_trending_type") %></label>
+                <select name="default_trending_type" id="default_trending_type">
+                    <% Invidious::Routes::Feeds::TrendingTypes.each do |option|
+                        option = option.to_s
+                    %>
+                        <option value="<%= option %>" <% if preferences.default_trending_type.to_s == option %> selected <% end %>><%= translate(locale, option) %></option>
+                    <% end %>
+                </select>
+            </div>
+
             <legend><%= translate(locale, "preferences_category_misc") %></legend>
 
             <div class="pure-control-group">
