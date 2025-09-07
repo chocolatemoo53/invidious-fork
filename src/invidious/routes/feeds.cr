@@ -35,6 +35,7 @@ module Invidious::Routes::Feeds
     locale = env.get("preferences").as(Preferences).locale
 
     if CONFIG.popular_enabled
+      preferences = env.get("preferences").as(Preferences)
       templated "feeds/popular"
     else
       message = translate(locale, "The Popular feed has been disabled by the administrator.")

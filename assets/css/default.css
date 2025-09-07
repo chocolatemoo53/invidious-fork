@@ -1069,3 +1069,8 @@ h1, h2, h3, h4, h5, p,
 .video-transcript > footer select {
   width: 75%;
 }
+
+.hidden-channels {
+  width: 300px;
+  height: 200px;
+}

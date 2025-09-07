@@ -144,6 +144,30 @@ module Invidious::Routes::PreferencesRoute
     notifications_only ||= "off"
     notifications_only = notifications_only == "on"
 
+    hidden_channels = env.params.body["hidden_channels"]?.try &.as(String)
+    if hidden_channels
+      hidden_channels = hidden_channels.split("\n")
+
+      delete = [] of Int32
+      hidden_channels.each_with_index do |ucid, idx|
+        u = ucid.rstrip("\r")
+
+        if (u == "") || (u == "\r")
+          delete << idx
+          next
+        end
+
+        # 24 is the length of channel UCIDs
+        if u.size != 24
+          raise InfoException.new("Channel ID has to be 25 characters long!")
+        else
+          hidden_channels[idx] = u
+        end
+      end
+
+      delete.reverse_each { |i| hidden_channels.delete_at(i) }
+    end
+
     # Convert to JSON and back again to take advantage of converters used for compatibility
     preferences = Preferences.from_json({
       annotations:                 annotations,
@@ -180,6 +204,7 @@ module Invidious::Routes::PreferencesRoute
       vr_mode:                     vr_mode,
       show_nick:                   show_nick,
       save_player_pos:             save_player_pos,
+      hidden_channels:             hidden_channels,
     }.to_json)
 
     if user = env.get? "user"

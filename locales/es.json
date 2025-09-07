@@ -78,6 +78,8 @@
     "Redirect homepage to feed: ": "Redirigir la página de inicio a la fuente: ",
     "preferences_max_results_label": "Número de videos mostrados en la fuente: ",
     "preferences_sort_label": "Ordenar los videos por: ",
+    "preferences_hidden_channels": "Canales ocultos",
+    "preferences_hidden_channels_label": "(Experimental) Lista de IDs de canales separados por la tecla ENTER. Por ahora, esto solo oculta canales de la pagina popular. Puedes conseguir la ID del canal entrando al canal y copiando la parte que empieza por 'UC' en el enlace. Ejemplo: /channel/<b>UCw-aR42z5gUcarpPGN5OKfA</b>",
     "published": "fecha de publicación",
     "published - reverse": "fecha de publicación: orden inverso",
     "alphabetically": "alfabéticamente",

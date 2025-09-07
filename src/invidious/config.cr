@@ -53,6 +53,8 @@ struct ConfigPreferences
   property show_nick : Bool = true
   property save_player_pos : Bool = false
   property enable_dearrow : Bool = false
+  @[YAML::Field(ignore: true)]
+  property hidden_channels : Array(String)? = nil
 
   def to_tuple
     {% begin %}

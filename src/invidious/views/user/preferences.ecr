@@ -211,6 +211,13 @@
                 <input name="automatic_instance_redirect" id="automatic_instance_redirect" type="checkbox" <% if preferences.automatic_instance_redirect %>checked<% end %>>
             </div>
 
+            <div class="pure-control-group">
+                <label for="hidden_channels"><%= translate(locale, "preferences_hidden_channels") %></label>
+                <% hidden_channels = preferences.hidden_channels %>
+                <textarea name="hidden_channels" id="hidden_channels" class="hidden-channels"><%= hidden_channels[0...].join("\n") if hidden_channels %></textarea>
+                <label for="hidden_channels"><%= translate(locale, "preferences_hidden_channels_label") %></label>
+            </div>
+
             <% if env.get? "user" %>
                 <legend><%= translate(locale, "preferences_category_subscription") %></legend>
 

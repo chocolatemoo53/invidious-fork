@@ -122,6 +122,8 @@
     "Redirect homepage to feed: ": "Redirect homepage to feed: ",
     "preferences_max_results_label": "Number of videos shown in feed: ",
     "preferences_sort_label": "Sort videos by: ",
+    "preferences_hidden_channels": "Hidden channels",
+    "preferences_hidden_channels_label": "(Experimental) Channel ID list separated by ENTER key. This only hides channels from the popular page for now. You can get the ID of the channel clicking on the channel and copying the part that starts with 'UC' in the channel link. Example: /channel/<b>UCw-aR42z5gUcarpPGN5OKfA</b>",
     "published": "published",
     "published - reverse": "published - reverse",
     "alphabetically": "alphabetically",
