@@ -254,10 +254,6 @@ class Config
 
   property backend_name_prefix : String = "Backend"
 
-  {% if flag?(:linux) %}
-    property reload_config_automatically : Bool = true
-  {% end %}
-
   def disabled?(option)
     case disabled = CONFIG.disable_proxy
     when Bool
