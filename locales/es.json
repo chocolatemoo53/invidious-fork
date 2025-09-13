@@ -81,6 +81,8 @@
     "preferences_hidden_channels": "Canales ocultos",
     "preferences_hidden_channels_label": "(Experimental) Lista de IDs de canales separados por la tecla ENTER. Por ahora, esto solo oculta canales de la pagina popular. Puedes conseguir la ID del canal entrando al canal y copiando la parte que empieza por 'UC' en el enlace. Ejemplo: /channel/<b>UCw-aR42z5gUcarpPGN5OKfA</b>",
     "preferences_default_trending_type": "Página de tendencias por defecto: ",
+    "preferences_default_playlist": "Lista de reproducción por defecto: ",
+    "preferences_default_playlist_none": "Ninguna lista de reproducción por defecto establecida",
     "published": "fecha de publicación",
     "published - reverse": "fecha de publicación: orden inverso",
     "alphabetically": "alfabéticamente",

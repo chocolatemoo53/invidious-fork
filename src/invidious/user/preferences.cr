@@ -58,6 +58,7 @@ struct Preferences
   property save_player_pos : Bool = CONFIG.default_user_preferences.save_player_pos
   property hidden_channels : Array(String)? = nil
   property default_trending_type : Invidious::Routes::Feeds::TrendingTypes = Invidious::Routes::Feeds::TrendingTypes::Default
+  property default_playlist : String? = nil
 
   module BoolToString
     def self.to_json(value : String, json : JSON::Builder)

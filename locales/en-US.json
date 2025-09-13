@@ -125,6 +125,8 @@
     "preferences_hidden_channels": "Hidden channels",
     "preferences_hidden_channels_label": "(Experimental) Channel ID list separated by ENTER key. This only hides channels from the popular page for now. You can get the ID of the channel clicking on the channel and copying the part that starts with 'UC' in the channel link. Example: /channel/<b>UCw-aR42z5gUcarpPGN5OKfA</b>",
     "preferences_default_trending_type": "Default trending page: ",
+    "preferences_default_playlist": "Default playlist: ",
+    "preferences_default_playlist_none": "No default playlist set",
     "published": "published",
     "published - reverse": "published - reverse",
     "alphabetically": "alphabetically",

@@ -46,11 +46,30 @@ struct YoutubeConnectionPool
   end
 end
 
-class CompanionConnectionPool
-  property pool : DB::Pool(HTTP::Client)
-  property companion : URI
+# Packages a `HTTP::Client` to an Invidious companion instance alongside the configuration for that instance.
+#
+# This is used as the resource for the `CompanionPool` as to allow the ability to
+# proxy the requests to Invidious companion from Invidious directly.
+# Instead of setting up routes in a reverse proxy.
+struct CompanionWrapper
+  property client : HTTP::Client
+  property companion : Config::CompanionConfig
 
-  def initialize(companion, capacity = 5, timeout = 5.0)
+  def initialize(companion : Config::CompanionConfig)
+    @companion = companion
+    @client = make_client(companion.private_url, use_http_proxy: false)
+  end
+
+  def close
+    @client.close
+  end
+end
+
+class CompanionConnectionPool
+  property pool : DB::Pool(CompanionWrapper)
+  property companion : Config::CompanionConfig
+
+  def initialize(@companion, capacity = 5, timeout = 5.0)
     options = DB::Pool::Options.new(
       initial_pool_size: 0,
       max_pool_size: capacity,
@@ -58,26 +77,26 @@ class CompanionConnectionPool
       checkout_timeout: timeout
     )
 
-    @companion = companion.private_url
-
-    @pool = DB::Pool(HTTP::Client).new(options) do
-      next make_client(@companion, use_http_proxy: false)
+    @pool = DB::Pool(CompanionWrapper).new(options) do
+      make_client(@companion.private_url, use_http_proxy: false)
+      CompanionWrapper.new(companion: @companion)
     end
   end
 
   def client(&)
-    conn = pool.checkout
+    wrapper = pool.checkout
 
     begin
-      response = yield conn
+      response = yield wrapper
     rescue ex
-      conn.close
+      wrapper.close
 
-      conn = make_client(@companion, use_http_proxy: false)
+      make_client(@companion.private_url, use_http_proxy: false)
+      wrapper = CompanionWrapper.new(companion: @companion)
 
-      response = yield conn
+      response = yield wrapper
     ensure
-      pool.release(conn)
+      pool.release(wrapper)
     end
 
     response

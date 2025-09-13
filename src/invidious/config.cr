@@ -52,6 +52,8 @@ struct ConfigPreferences
   property vr_mode : Bool = true
   property show_nick : Bool = true
   property save_player_pos : Bool = false
+  @[YAML::Field(ignore: true)]
+  property default_playlist : String? = nil
   property enable_dearrow : Bool = false
   @[YAML::Field(ignore: true)]
   property hidden_channels : Array(String)? = nil
@@ -93,6 +95,9 @@ class Config
 
     property note : String = ""
     property domain : Array(String) = [] of String
+
+    # Indicates if this companion instance uses the built-in proxy
+    property builtin_proxy : Bool = false
   end
 
   # Number of threads to use for crawling videos from channels (for updating subscriptions)
@@ -398,6 +403,14 @@ class Config
       elsif config.invidious_companion_key.size != 16
         puts "Config: The value of 'invidious_companion_key' needs to be a size of 16 characters."
         exit(1)
+      end
+
+      # Set public_url to built-in proxy path when omitted
+      config.invidious_companion.each do |companion|
+        if companion.public_url.to_s.empty?
+          companion.public_url = URI.parse("/companion")
+          companion.builtin_proxy = true
+        end
       end
     elsif config.signature_server
       puts("WARNING: inv-sig-helper is deprecated. Please switch to Invidious companion: https://docs.invidious.io/companion-installation/")

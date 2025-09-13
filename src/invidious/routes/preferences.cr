@@ -144,6 +144,8 @@ module Invidious::Routes::PreferencesRoute
     notifications_only ||= "off"
     notifications_only = notifications_only == "on"
 
+    default_playlist = env.params.body["default_playlist"]?.try &.as(String)
+
     hidden_channels = env.params.body["hidden_channels"]?.try &.as(String)
     if hidden_channels
       hidden_channels = hidden_channels.split("\n")
@@ -170,6 +172,7 @@ module Invidious::Routes::PreferencesRoute
 
     default_trending_type = env.params.body["default_trending_type"]?.try &.as(String)
     default_trending_type ||= Invidious::Routes::Feeds::TrendingTypes::Default
+
 
     # Convert to JSON and back again to take advantage of converters used for compatibility
     preferences = Preferences.from_json({
@@ -207,6 +210,7 @@ module Invidious::Routes::PreferencesRoute
       vr_mode:                     vr_mode,
       show_nick:                   show_nick,
       save_player_pos:             save_player_pos,
+      default_playlist:            default_playlist,
       hidden_channels:             hidden_channels,
       default_trending_type:       default_trending_type,
     }.to_json)
