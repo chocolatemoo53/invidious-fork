@@ -173,7 +173,6 @@ module Invidious::Routes::PreferencesRoute
     default_trending_type = env.params.body["default_trending_type"]?.try &.as(String)
     default_trending_type ||= Invidious::Routes::Feeds::TrendingTypes::Default
 
-
     # Convert to JSON and back again to take advantage of converters used for compatibility
     preferences = Preferences.from_json({
       annotations:                 annotations,

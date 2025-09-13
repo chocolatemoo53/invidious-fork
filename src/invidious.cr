@@ -58,7 +58,7 @@ end
 # Simple alias to make code easier to read
 alias IV = Invidious
 
-CONFIG = Config.load
+CONFIG   = Config.load
 HMAC_KEY = CONFIG.hmac_key
 
 PG_DB = begin
@@ -68,12 +68,12 @@ rescue ex
   puts "Check your 'config.yml' database settings or PostgreSQL settings."
   exit(1)
 end
-ARCHIVE_URL = URI.parse("https://archive.org")
-PUBSUB_URL  = URI.parse("https://pubsubhubbub.appspot.com")
-REDDIT_URL  = URI.parse("https://www.reddit.com")
-YT_URL      = URI.parse("https://www.youtube.com")
+ARCHIVE_URL     = URI.parse("https://archive.org")
+PUBSUB_URL      = URI.parse("https://pubsubhubbub.appspot.com")
+REDDIT_URL      = URI.parse("https://www.reddit.com")
+YT_URL          = URI.parse("https://www.youtube.com")
 PUBSUB_HOST_URL = CONFIG.pubsub_domain
-HOST_URL    = make_host_url(Kemal.config)
+HOST_URL        = make_host_url(Kemal.config)
 
 CHARS_SAFE         = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 TEST_IDS           = {"AgbeGFYluEA", "BaW_jenozKc", "a9LDPn-MO4I", "ddFvjfvPnqk", "iqKdEhx-dD4"}
