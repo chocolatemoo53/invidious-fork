@@ -1,7 +1,7 @@
 # https://github.com/openssl/openssl/releases/tag/openssl-3.5.2
 ARG OPENSSL_VERSION='3.5.2'
 
-FROM mirror.gcr.io/crystallang/crystal:1.16.3-alpine AS builder
+FROM mirror.gcr.io/84codes/crystal:1.16.3-alpine AS builder
 
 RUN apk add --no-cache sqlite-static yaml-static
 RUN apk del openssl-dev openssl-libs-static
