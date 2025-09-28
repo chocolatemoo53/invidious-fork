@@ -37,7 +37,7 @@ module BackendInfo
               updated_status[index] = Status::Working.to_i
               updated_ends.push(index)
             end
-            generate_csp([companion.public_url.to_s, companion.i2p_public_url.to_s], index)
+            generate_csp([companion.public_url, companion.i2p_public_url], index)
           else
             @@check_mutex.synchronize do
               updated_status[index] = Status::Dead.to_i
@@ -60,11 +60,12 @@ module BackendInfo
     @@status = updated_status
   end
 
-  private def generate_csp(companion_url : Array(String), index : Int32? = nil)
+  private def generate_csp(companion_url : Array(URI), index : Int32? = nil)
     @@csp_mutex.synchronize do
       @@csp[index] = ""
       companion_url.each do |url|
-        @@csp[index] += " #{url}"
+        fixed_url = "#{url.scheme}://#{url.host}#{url.port ? ":#{url.port}" : ""}"
+        @@csp[index] += " #{fixed_url}"
       end
     end
   end

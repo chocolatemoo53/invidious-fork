@@ -210,18 +210,6 @@ module Invidious::Routes::Embed
     if CONFIG.invidious_companion.present?
       current_companion = env.get("current_companion").as(Int32)
       invidious_companion = CONFIG.invidious_companion[current_companion]
-
-      invidious_companion_urls = CONFIG.invidious_companion.reject(&.builtin_proxy).map do |companion|
-        uri =
-          "#{companion.public_url.scheme}://#{companion.public_url.host}#{companion.public_url.port ? ":#{companion.public_url.port}" : ""}"
-      end.join(" ")
-
-      if !invidious_companion_urls.empty?
-        env.response.headers["Content-Security-Policy"] =
-          env.response.headers["Content-Security-Policy"]
-            .gsub("media-src", "media-src #{invidious_companion_urls}")
-            .gsub("connect-src", "connect-src #{invidious_companion_urls}")
-      end
     end
 
     rendered "embed"
