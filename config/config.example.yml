@@ -1073,7 +1073,176 @@ default_user_preferences:
   ##
   #extend_desc: false
 
-# redis_url: redis://127.0.0.1:6379/0?initial_pool_size=1&max_pool_size=10&checkout_timeout=10&retry_attempts=2&retry_delay=0.5&max_idle_pool_size=50
-# donation_url: "https://example.com/donate"
-# contact_url: "https://example.com/contact"
-# home_domain: "https://example.com/
+##############################################
+# nadeko.net Invidious Fork exclusive settings:
+
+## Extra configurations for Invidious companion
+##
+## `i2p_public_url`: The public i2p url if you are hosting it
+## on a remote server with I2P.
+## `note`: Just a small note that will appear next to the backend
+##
+#invidious_companion:
+#  - private_url: "http://localhost:8282/companion"
+#  # public_url: "http://localhost:8282/companion"
+#  # i2p_public_url: "http://someb32i2paddress.b32.i2p/companion"
+#  # note: "Europe Backend"
+
+##
+## Materialious domain that appears bellow "Watch on Youtube"
+##
+## Note: This is useless for public instances.
+## Is better suitable for private instances
+##
+## Accepted values: a string
+## Default: null
+##
+#materialious_domain: null
+
+##
+## Enables/Disables Content-Security-Policy
+## ONLY DISABLE FOR DEBUGGING PURPOSES!
+##
+## Accepted values: true, false
+## Default: false
+##
+#csp: false
+
+##
+## Redis server for Video cache
+## Extremely recommended if you have a public instance
+## and you are running multiple Invidious processes to balance it's
+## load across the processes
+##
+## Accepted values: a string
+## Default: "" (this means tcp://localhost:6379)
+##
+#redis_url: ""
+
+#########################################
+#
+#  Video cache
+#
+#########################################
+
+video_cache:
+    ## Enable/Disable Video cache
+    ##
+    ## Accepted values: true, false
+    ## Default: true
+    ##
+    enable: true
+
+    ## The backend used for Video cache.
+    ## This can be PostgreSQL (0), Redis (1) or LRU (2).
+    ##
+    ## Redis is recommended when using more than one
+    ## Invidious process for load balancing
+    ## LRU is recommended when using a single process
+    ##
+    ## Note: This Invidious fork has memory leaks fixed
+    ## so you can use LRU without having to worry about
+    ## losing all the cache after Invidious gets killed
+    ## by Out-of-Memory. Altrough LRU cache is not saved
+    ## across restarts.
+    ##
+    ## Accepted values: 0, 1, 2
+    ## Default: 1
+    ##
+    backend: 1
+
+    ## Maximum amount of items that can be inside thecache.
+    ##
+    ## Accepted values: a positive integer
+    ## Default: 18432
+    ##
+    lru_max_size: 18432
+
+
+##
+## Maximum resolution that is going to be displayed
+## on the Invidious video player. For bandwidth saving.
+##
+## Accepted values: a positive integer OR null
+## Default: null
+## Example: 1080
+##
+#max_dash_resolution: null
+
+##
+## The name of the cookie to hold the backend id that
+## the client is using.
+##
+## Accepted values: a string
+## Default: "COMPANION_ID"
+##
+#server_id_cookie_name: "COMPANION_ID"
+
+##
+## Checks if the companions in the `invidious_companion` list
+## are alive using their `/healthz` endpoint.
+##
+## Accepted values: A positive integer
+## Default: 30
+##
+#check_backends_interval: true
+
+##
+## Forces the video proxy.
+##
+## Accepted values: true, false
+## Default: true
+##
+#force_local: true
+
+##
+## Disables livestreams. This was added because Invidious companion
+## does not support livestreams *yet*. May be removed or reused
+## when Invidious companion adds supports for livestreams.
+##
+## Accepted values: true, false
+## Default: true
+##
+#disable_livestreams: true
+
+##
+## How many videos will appear on the popular page of
+## Invidious.
+##
+## Accepted values: A positive integer.
+## Default: 40
+##
+#max_popular_results: 40
+
+##
+## Disables video downloads, it will only give audio and subtitle
+## download options.
+##
+## Accepted values: true, false
+## Default: false
+##
+#disable_video_downloads: false
+
+##
+## The prefix of numbered domains to fix a specific backend to
+## a specific subdomain with a prefix.
+## Example: If you have domain "inv1.example.com" and "inv2.nadeko.net"
+## with `invidious_companion_prefix` set to `inv`,
+## using "inv1.example.com" will give the client the backend 1,
+## using "inv2.example.com" will give the client the backend 2,
+## and so on.
+## This was made for browsers with cookies disabled and third party clients.
+##
+## Accepted values: a string
+## Default: ""
+##
+#invidious_companion_prefix: ""
+
+##
+## Changes the prefix of the backends (companion instances)
+## that appear on the list of backends
+##
+## Accepted values: a string
+## Default: "Backend"
+##
+#backend_name_prefix: "Backend"
