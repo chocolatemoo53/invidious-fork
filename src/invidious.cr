@@ -210,12 +210,6 @@ Invidious::Jobs.register Invidious::Jobs::ClearExpiredItemsJob.new
 
 Invidious::Jobs.register Invidious::Jobs::InstanceListRefreshJob.new
 
-if !CONFIG.tokens_server.empty?
-  Invidious::Jobs.register Invidious::Jobs::RefreshSessionTokens.new
-else
-  LOGGER.info("jobs: Disabling RefreshSessionTokens job. Invidious will use the tokens that are on the configuration file")
-end
-
 if CONFIG.invidious_companion.present?
   Invidious::Jobs.register Invidious::Jobs::CheckBackend.new
 else

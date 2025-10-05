@@ -229,8 +229,6 @@ class Config
 
   property server_id_cookie_name : String = "COMPANION_ID"
 
-  property tokens_server : String = ""
-
   property video_cache : VideoCacheConfig = VideoCacheConfig.from_yaml("")
 
   class VideoCacheConfig
