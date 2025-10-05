@@ -252,6 +252,16 @@ class Config
 
   property backend_name_prefix : String = "Backend"
 
+  property videojs : VideoJSConfig = VideoJSConfig.from_yaml("")
+
+  struct VideoJSConfig
+    include YAML::Serializable
+    include JSON::Serializable
+
+    property goal_buffer_length : Int32? = 30
+    property max_goal_buffer_length : Int32? = 60
+  end
+
   def disabled?(option)
     case disabled = CONFIG.disable_proxy
     when Bool

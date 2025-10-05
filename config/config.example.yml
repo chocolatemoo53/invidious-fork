@@ -1246,3 +1246,24 @@ video_cache:
 ## Default: "Backend"
 ##
 #backend_name_prefix: "Backend"
+
+#########################################
+#
+#  VideoJS Settings
+#
+#########################################
+
+videojs:
+    ## Change goal buffer length
+    ##
+    ## Accepted values: a positive integer OR null
+    ## Default: 30
+    ##
+    goal_buffer_length: 30
+
+    ## Change max goal buffer length
+    ##
+    ## Accepted values: a positive integer OR null
+    ## Default: 60
+    ##
+    max_goal_buffer_length: 60

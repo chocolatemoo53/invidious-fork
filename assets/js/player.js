@@ -1,6 +1,7 @@
 'use strict';
 var player_data = JSON.parse(document.getElementById('player_data').textContent);
 var video_data = JSON.parse(document.getElementById('video_data').textContent);
+const CONFIG = JSON.parse(document.getElementById('config').textContent);
 
 var options = {
     liveui: true,
@@ -54,8 +55,13 @@ videojs.Vhs.xhr.beforeRequest = function(options) {
     return options;
 };
 
-videojs.Vhs.GOAL_BUFFER_LENGTH = 40;
-videojs.Vhs.MAX_GOAL_BUFFER_LENGTH = 80;
+// Buffer limits
+if (CONFIG.videojs.goal_buffer_length) {
+    videojs.Vhs.GOAL_BUFFER_LENGTH = CONFIG.videojs.goal_buffer_length;
+}
+if (CONFIG.videojs.max_goal_buffer_length) {
+    videojs.Vhs.MAX_GOAL_BUFFER_LENGTH = CONFIG.videojs.max_goal_buffer_length;
+}
 
 var player = videojs('player', options);
 
