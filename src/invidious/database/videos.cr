@@ -72,6 +72,29 @@ module Invidious::Database::Videos
     end
   end
 
+  module CacheUtils
+    extend self
+
+    def to_video(info : String?, time : String?, id : String) : Video?
+      if info && time
+        # With the { we identify if it's a JSON or not
+        if info[0] != '{'
+          info = CacheCompression.decompress(info, id)
+          if info.nil?
+            return nil
+          end
+        end
+        return Video.new({
+          id:      id,
+          info:    JSON.parse(info).as_h,
+          updated: Time.parse(time, "%Y-%m-%d %H:%M:%S %z", Time::Location::UTC),
+        })
+      else
+        return nil
+      end
+    end
+  end
+
   module CacheMethods
     # TODO: Save the cache on a file with a Job
     class LRU
@@ -98,24 +121,7 @@ module Invidious::Database::Videos
       def get(id : String)
         info = self[id]
         time = self[id + ":time"]
-        if info && time
-          # With the { we identify if it's a JSON or not. In that way, compressed
-          # video info keeps working after setting video_cache.compress to false
-          # and new videos inserted will be uncompressed.
-          if info[0] != '{'
-            info = CacheCompression.decompress(info, id)
-            if info.nil?
-              return nil
-            end
-          end
-          return Video.new({
-            id:      id,
-            info:    JSON.parse(info).as_h,
-            updated: Time.parse(time, "%Y-%m-%d %H:%M:%S %z", Time::Location::UTC),
-          })
-        else
-          return nil
-        end
+        return CacheUtils.to_video(info, time, id)
       end
 
       private def [](key)
@@ -175,22 +181,7 @@ module Invidious::Database::Videos
       def get(id : String)
         info = @redis.get(id)
         time = @redis.get(id + ":time")
-        if info && time
-          # With the { we identify if it's a JSON or not
-          if info[0] != '{'
-            info = CacheCompression.decompress(info, id)
-            if info.nil?
-              return nil
-            end
-          end
-          return Video.new({
-            id:      id,
-            info:    JSON.parse(info).as_h,
-            updated: Time.parse(time, "%Y-%m-%d %H:%M:%S %z", Time::Location::UTC),
-          })
-        else
-          return nil
-        end
+        return CacheUtils.to_video(info, time, id)
       end
     end
 
@@ -227,15 +218,7 @@ module Invidious::Database::Videos
         data = PG_DB.query_one?(request, id, as: VideoCacheInfo)
 
         if data
-          if data.info && data.updated
-            return Video.new({
-              id:      id,
-              info:    JSON.parse(data.info).as_h,
-              updated: Time.parse(data.updated, "%Y-%m-%d %H:%M:%S %z", Time::Location::UTC),
-            })
-          else
-            return nil
-          end
+          return CacheUtils.to_video(data.info, data.updated, id)
         end
       end
     end
