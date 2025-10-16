@@ -238,6 +238,8 @@ class Config
     property backend : Int32 = 1
     # Max quantity of keys that can be held on the LRU cache
     property lru_max_size : Int32 = 18432 # ~512MB
+    # Compress cache with Deflate
+    property compress : Bool = false
   end
 
   property check_backends_interval : Int32 = 30
@@ -452,6 +454,10 @@ class Config
         puts "0 (PostgreSQL)"
         puts "1 (Redis compatible DB) (Default)"
         puts "2 (In memory LRU)"
+      end
+      if config.video_cache.compress && config.video_cache.backend == 0
+        puts "Video Cache compression can only be enabled when using backend 1 (Redis) or 2 (LRU)"
+        exit(1)
       end
     end
 

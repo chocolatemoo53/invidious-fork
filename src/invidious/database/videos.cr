@@ -13,6 +13,37 @@ module Invidious::Database::Videos
     end
   end
 
+  module CacheCompression
+    extend self
+
+    def compress(video_info : String) : String
+      compressed = IO::Memory.new
+      uncompressed = IO::Memory.new
+      uncompressed << video_info
+      uncompressed.rewind
+      Compress::Deflate::Writer.open(compressed, Compress::Deflate::BEST_SPEED) do |deflate|
+        IO.copy(uncompressed, deflate)
+      end
+      compressed.rewind
+      return compressed.gets_to_end
+    end
+
+    def decompress(video_info_compressed : String, id : String) : String?
+      compressed = IO::Memory.new
+      compressed << video_info_compressed
+      compressed.rewind
+      decompressed = Compress::Deflate::Reader.new(compressed, sync_close: true)
+      begin
+        return decompressed.gets_to_end
+      rescue Compress::Deflate::Error
+        # If there is an error when decompressing the video data,
+        # delete the video from the cache to fetch it again.
+        VideoCache.del(id)
+        return nil
+      end
+    end
+  end
+
   class Cache
     def initialize
       case CONFIG.video_cache.backend
@@ -68,6 +99,15 @@ module Invidious::Database::Videos
         info = self[id]
         time = self[id + ":time"]
         if info && time
+          # With the { we identify if it's a JSON or not. In that way, compressed
+          # video info keeps working after setting video_cache.compress to false
+          # and new videos inserted will be uncompressed.
+          if info[0] != '{'
+            info = CacheCompression.decompress(info, id)
+            if info.nil?
+              return nil
+            end
+          end
           return Video.new({
             id:      id,
             info:    JSON.parse(info).as_h,
@@ -136,6 +176,13 @@ module Invidious::Database::Videos
         info = @redis.get(id)
         time = @redis.get(id + ":time")
         if info && time
+          # With the { we identify if it's a JSON or not
+          if info[0] != '{'
+            info = CacheCompression.decompress(info, id)
+            if info.nil?
+              return nil
+            end
+          end
           return Video.new({
             id:      id,
             info:    JSON.parse(info).as_h,
@@ -177,7 +224,19 @@ module Invidious::Database::Videos
           WHERE id = $1
         SQL
 
-        return PG_DB.query_one?(request, id, as: Video)
+        data = PG_DB.query_one?(request, id, as: VideoCacheInfo)
+
+        if data
+          if data.info && data.updated
+            return Video.new({
+              id:      id,
+              info:    JSON.parse(data.info).as_h,
+              updated: Time.parse(data.updated, "%Y-%m-%d %H:%M:%S %z", Time::Location::UTC),
+            })
+          else
+            return nil
+          end
+        end
       end
     end
   end
@@ -185,7 +244,11 @@ module Invidious::Database::Videos
   extend self
 
   def insert(video : Video)
-    video_cache_info = VideoCacheInfo.new(video.info.to_json, video.id, video.updated.to_s)
+    video_info = video.info.to_json
+    if CONFIG.video_cache.compress
+      video_info = CacheCompression.compress(video_info)
+    end
+    video_cache_info = VideoCacheInfo.new(video_info, video.id, video.updated.to_s)
     VideoCache.set(video: video_cache_info, expire_time: 14400) if CONFIG.video_cache.enabled
   end
 
@@ -194,7 +257,7 @@ module Invidious::Database::Videos
   end
 
   def select(id : String) : Video?
-    return VideoCache.get(id)
+    VideoCache.get(id)
   end
 
   def delete_expired

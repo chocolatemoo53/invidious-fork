@@ -1158,6 +1158,13 @@ video_cache:
     ##
     lru_max_size: 18432
 
+    ## Compress cache with Deflate to save RAM. Only works with Redis (1) and
+    ## LRU (2) cache.
+    ##
+    ## Accepted values: false, true
+    ## Default: false
+    ##
+    compress: false
 
 ##
 ## Maximum resolution that is going to be displayed
