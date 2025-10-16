@@ -4,6 +4,15 @@ require "redis"
 VideoCache = Invidious::Database::Videos::Cache.new
 
 module Invidious::Database::Videos
+  struct VideoCacheInfo
+    property info : String
+    property id : String
+    property updated : String
+
+    def initialize(@info, @id, @updated)
+    end
+  end
+
   class Cache
     def initialize
       case CONFIG.video_cache.backend
@@ -19,7 +28,7 @@ module Invidious::Database::Videos
       end
     end
 
-    def set(video : Video, expire_time)
+    def set(video : VideoCacheInfo, expire_time)
       @cache.set(video, expire_time)
     end
 
@@ -45,8 +54,8 @@ module Invidious::Database::Videos
       end
 
       # TODO: Handle expire_time with a Job
-      def set(video : Video, expire_time)
-        self[video.id] = video.info.to_json
+      def set(video : VideoCacheInfo, expire_time)
+        self[video.id] = video.info
         self[video.id + ":time"] = "#{video.updated}"
       end
 
@@ -113,8 +122,8 @@ module Invidious::Database::Videos
         end
       end
 
-      def set(video : Video, expire_time)
-        @redis.set(video.id, video.info.to_json, ex: expire_time)
+      def set(video : VideoCacheInfo, expire_time)
+        @redis.set(video.id, video.info, ex: expire_time)
         @redis.set(video.id + ":time", video.updated.to_s, ex: expire_time)
       end
 
@@ -143,14 +152,14 @@ module Invidious::Database::Videos
         LOGGER.info "Video Cache: Using PostgreSQL to store video cache"
       end
 
-      def set(video : Video, expire_time)
+      def set(video : VideoCacheInfo, expire_time)
         request = <<-SQL
           INSERT INTO videos
           VALUES ($1, $2, $3)
           ON CONFLICT (id) DO NOTHING
         SQL
 
-        PG_DB.exec(request, video.id, video.info.to_json, video.updated)
+        PG_DB.exec(request, video.id, video.info, video.updated)
       end
 
       def del(id)
@@ -176,11 +185,16 @@ module Invidious::Database::Videos
   extend self
 
   def insert(video : Video)
-    VideoCache.set(video: video, expire_time: 14400) if CONFIG.video_cache.enabled
+    video_cache_info = VideoCacheInfo.new(video.info.to_json, video.id, video.updated.to_s)
+    VideoCache.set(video: video_cache_info, expire_time: 14400) if CONFIG.video_cache.enabled
   end
 
   def delete(id)
     VideoCache.del(id)
+  end
+
+  def select(id : String) : Video?
+    return VideoCache.get(id)
   end
 
   def delete_expired
@@ -200,9 +214,5 @@ module Invidious::Database::Videos
     SQL
 
     PG_DB.exec(request, video.id, video.info.to_json, video.updated)
-  end
-
-  def select(id : String) : Video?
-    return VideoCache.get(id)
   end
 end
