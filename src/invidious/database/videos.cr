@@ -100,7 +100,12 @@ module Invidious::Database::Videos
       @redis : Redis::Client
 
       def initialize
-        @redis = Redis::Client.new(CONFIG.redis_url)
+        @redis = begin
+          Redis::Client.new(CONFIG.redis_url)
+        rescue ex
+          LOGGER.fatal "Video Cache: Failed to connect to redis database: '#{ex.message}'"
+          exit(1)
+        end
         LOGGER.info "Video Cache: Using Redis compatible DB to store video cache"
         LOGGER.info "Connecting to Redis compatible DB"
         if @redis.ping
