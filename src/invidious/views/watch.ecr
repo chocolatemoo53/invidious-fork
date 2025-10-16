@@ -78,7 +78,8 @@ we're going to need to do it here in order to allow for translations.
     "comments_enabled" => video.comments?,
     "projection_type" => video.projection_type,
     "local_disabled" => CONFIG.disabled?("local"),
-    "support_reddit" => true
+    "support_reddit" => true,
+    "live_now" => video.live_now
 }.to_pretty_json
 %>
 </script>

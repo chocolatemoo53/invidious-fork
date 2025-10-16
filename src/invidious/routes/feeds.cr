@@ -6,6 +6,7 @@ module Invidious::Routes::Feeds
     Music
     Gaming
     Movies
+    Livestreams
   end
 
   def self.view_all_playlists_redirect(env)
