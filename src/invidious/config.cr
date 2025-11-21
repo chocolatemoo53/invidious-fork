@@ -194,7 +194,7 @@ class Config
   # Path and permissions to make Invidious listen on a UNIX socket instead of a TCP port
   property socket_binding : SocketBindingConfig? = nil
   # Maximum size of request line (in bytes), increase if you get 414 errors with long URLs
-  property max_request_line_size : Int32? = nil
+  property max_request_line_size : Int32 = 16384
   # Pool size for HTTP requests to youtube.com and ytimg.com (each domain has a separate pool of `pool_size`)
   property pool_size : Int32 = 100
   # HTTP Proxy configuration
