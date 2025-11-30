@@ -61,6 +61,7 @@ struct Preferences
   property default_playlist : String? = nil
   property show_community_backends : Bool = false
   property current_companion : Int32? = nil
+  property search_privacy : Bool = CONFIG.default_user_preferences.search_privacy
 
   module BoolToString
     def self.to_json(value : String, json : JSON::Builder)

@@ -62,6 +62,7 @@ struct ConfigPreferences
   property show_community_backends : Bool = false
   @[YAML::Field(ignore: true)]
   property current_companion : Int32? = nil
+  property search_privacy : Bool = false
 
   def to_tuple
     {% begin %}

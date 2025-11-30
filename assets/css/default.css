@@ -663,7 +663,7 @@ span > select {
     background: #f2f2f2;
     color: #7c7c7c;
   }
-  
+
   .no-theme footer #footer-custom-text > b {
     color: #565D64;
   }
@@ -750,7 +750,7 @@ body.dark-theme {
 
 .dark-theme #footer-content-container > hr {
   color: #313131;
-} 
+}
 
 .dark-theme .footer-content #footer-custom-text > b {
   color: #ccc;
@@ -1025,7 +1025,7 @@ h1, h2, h3, h4, h5, p,
 .video-transcript header {
   padding-bottom: 5px;
   border-bottom: 1px solid #a0a0a0;
-} 
+}
 
 .video-transcript > #lines {
   display: flex;

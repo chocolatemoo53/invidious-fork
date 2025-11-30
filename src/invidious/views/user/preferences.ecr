@@ -242,6 +242,12 @@
             </div>
 
             <div class="pure-control-group">
+                <label for="search_privacy"><%= translate(locale, "preferences_search_privacy_label") %></label>
+                <input name="search_privacy" id="search_privacy" type="checkbox" <% if preferences.search_privacy %>checked<% end %>>
+                <span class="preference-description"><%= translate(locale, "preferences_search_privacy_description") %></span>
+            </div>
+
+            <div class="pure-control-group">
                 <label for="hidden_channels"><%= translate(locale, "preferences_hidden_channels") %></label>
                 <% hidden_channels = preferences.hidden_channels %>
                 <textarea name="hidden_channels" id="hidden_channels" class="hidden-channels"><%= hidden_channels[0...].join("\n") if hidden_channels %></textarea>
@@ -406,4 +412,4 @@
     </form>
 </div>
 
-<div id="footer_buffer"></div>  
+<div id="footer_buffer"></div>
