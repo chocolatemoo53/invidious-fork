@@ -13,7 +13,7 @@ struct YoutubeConnectionPool
     @pool = build_pool()
   end
 
-  def client(&)
+  def client(env : HTTP::Server::Context? = nil, headers_to_duplicate : Array(String)? = nil, &)
     conn = pool.checkout
     # Proxy needs to be reinstated every time we get a client from the pool
     conn.proxy = make_configured_http_proxy_client() if CONFIG.http_proxy
@@ -27,6 +27,20 @@ struct YoutubeConnectionPool
       response = yield conn
     ensure
       pool.release(conn)
+    end
+
+    # Shit way do not use do not replicate this is horrible because how blocks work
+    if env && headers_to_duplicate
+      if response.is_a?(HTTP::Client::Response)
+        youtube_response_headers = response.headers
+        if youtube_response_headers
+          headers_to_duplicate.each do |header|
+            if header_value = youtube_response_headers[header]?
+              env.response.headers[header] = header_value
+            end
+          end
+        end
+      end
     end
 
     response

@@ -170,7 +170,7 @@ module Invidious::Routes::Feeds
       "default" => "http://www.w3.org/2005/Atom",
     }
 
-    response = YT_POOL.client &.get("/feeds/videos.xml?channel_id=#{ucid}")
+    response = YT_POOL.client env, ["Expires", "Cache-Control", "Date"], &.get("/feeds/videos.xml?channel_id=#{ucid}")
     return error_atom(404, NotFoundException.new("Channel does not exist.")) if response.status_code == 404
     rss = XML.parse(response.body)
 
@@ -320,7 +320,7 @@ module Invidious::Routes::Feeds
       end
     end
 
-    response = YT_POOL.client &.get("/feeds/videos.xml?playlist_id=#{plid}")
+    response = YT_POOL.client env, ["Expires", "Cache-Control", "Date"], &.get("/feeds/videos.xml?playlist_id=#{plid}")
     return error_atom(404, NotFoundException.new("Playlist does not exist.")) if response.status_code == 404
 
     document = XML.parse(response.body)
