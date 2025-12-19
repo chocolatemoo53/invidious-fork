@@ -20,13 +20,15 @@ module Invidious::Routes::Companion
 
   # POST /companion
   def self.post_companion(env)
+    current_companion = env.get("current_companion").as(Int32)
+
     url = env.request.path
     if env.request.query
       url += "?#{env.request.query}"
     end
 
     begin
-      COMPANION_POOL.client do |wrapper|
+      COMPANION_POOL[current_companion].client do |wrapper|
         wrapper.client.post(url, env.request.headers, env.request.body) do |resp|
           return self.proxy_companion(env, resp)
         end
