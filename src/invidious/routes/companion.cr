@@ -37,7 +37,6 @@ module Invidious::Routes::Companion
     end
   end
 
-
   def self.options_companion(env)
     current_companion = env.get("current_companion").as(Int32)
 
