@@ -61,8 +61,12 @@ module Invidious::Routes::BeforeAll
             end
           end
 
-          if current_companion > CONFIG.invidious_companion.size
-            current_companion = current_companion % CONFIG.invidious_companion.size - 1
+          if current_companion < 0
+            current_companion = rand(CONFIG.invidious_companion.size)
+          end
+
+          if current_companion >= CONFIG.invidious_companion.size
+            current_companion = current_companion % CONFIG.invidious_companion.size
             env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(host, current_companion)
           end
 
