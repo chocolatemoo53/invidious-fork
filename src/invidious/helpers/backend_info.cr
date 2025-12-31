@@ -3,7 +3,15 @@ module BackendInfo
 
   enum Status
     Dead    = 0
-    Working = 1
+    Blocked = 1
+    Working = 2
+  end
+
+  struct CompanionData
+    include JSON::Serializable
+    property blocked : Bool = false
+    @[JSON::Field(key: "blockedCount")]
+    property blocked_count : Int64 = 0
   end
 
   @@status : Array(Int32) = Array.new(CONFIG.invidious_companion.size, Status::Dead.to_i)
@@ -31,11 +39,27 @@ module BackendInfo
         begin
           client = HTTP::Client.new(companion.private_url)
           client.connect_timeout = 10.seconds
-          response = client.get("/healthz")
+          response = client.get(CONFIG.check_backends_path)
           if response.status_code == 200
-            @@check_mutex.synchronize do
-              updated_status[index] = Status::Working.to_i
-              updated_ends.push(index)
+            if response.content_type == "application/json"
+              body = response.body
+              status_json = CompanionData.from_json(body)
+              if status_json.blocked
+                @@check_mutex.synchronize do
+                  updated_status[index] = Status::Blocked.to_i
+                  updated_ends.push(index)
+                end
+              else
+                @@check_mutex.synchronize do
+                  updated_status[index] = Status::Working.to_i
+                  updated_ends.push(index)
+                end
+              end
+            else
+              @@check_mutex.synchronize do
+                updated_status[index] = Status::Working.to_i
+                updated_ends.push(index)
+              end
             end
             generate_csp([companion.public_url, companion.i2p_public_url], index)
           else

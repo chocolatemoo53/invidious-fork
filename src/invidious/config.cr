@@ -238,6 +238,8 @@ class Config
 
   property check_backends_interval : Int32 = 30
 
+  property check_backends_path : String = "/healthz"
+
   property force_local : Bool = true
 
   property disable_livestreams : Bool = true

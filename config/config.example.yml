@@ -1182,6 +1182,17 @@ video_cache:
 #check_backends_interval: true
 
 ##
+## The endpoint to check if a backend is alive or not.
+## If using a the nadeko.net Invidious companion patches you can set it to
+## "/status" to check if the Invidious companion instance that is being checked
+## is blocked by youtube.
+##
+## Accepted values: a string
+## Default: "/healthz"
+##
+#check_backends_path: "/healthz"
+
+##
 ## Forces the video proxy.
 ##
 ## Accepted values: true, false

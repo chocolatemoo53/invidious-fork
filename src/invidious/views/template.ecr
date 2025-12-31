@@ -125,6 +125,7 @@
                                 <%= HTML.escape(CONFIG.backend_name_prefix + (index + 1).to_s) %> <%= HTML.escape(companion.note) %>
                                 <span style="color:
                                     <% if status[index] == BackendInfo::Status::Dead.to_i %> #fd4848; <% end %>
+                                    <% if status[index] == BackendInfo::Status::Blocked.to_i %> #ddc338; <% end %>
                                     <% if status[index] == BackendInfo::Status::Working.to_i %> #42ae3c; <% end %>
                                 ">•</span>
                             </a>
@@ -139,6 +140,7 @@
                                 <%= HTML.escape(CONFIG.backend_name_prefix + (index + 1).to_s) %> <%= HTML.escape(companion.note) %>
                                 <span style="color:
                                     <% if status[index] == BackendInfo::Status::Dead.to_i %> #fd4848; <% end %>
+                                    <% if status[index] == BackendInfo::Status::Blocked.to_i %> #ddc338; <% end %>
                                     <% if status[index] == BackendInfo::Status::Working.to_i %> #42ae3c; <% end %>
                                 ">•</span>
                             </a>
