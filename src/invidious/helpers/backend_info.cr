@@ -45,32 +45,19 @@ module BackendInfo
               body = response.body
               status_json = CompanionData.from_json(body)
               if status_json.blocked
-                @@check_mutex.synchronize do
-                  updated_status[index] = Status::Blocked.to_i
-                  updated_ends.push(index)
-                end
+                updated_ends, updated_status = self.set_status(index, updated_ends, updated_status, Status::Blocked, true)
               else
-                @@check_mutex.synchronize do
-                  updated_status[index] = Status::Working.to_i
-                  updated_ends.push(index)
-                end
+                updated_ends, updated_status = self.set_status(index, updated_ends, updated_status, Status::Working, true)
               end
             else
-              @@check_mutex.synchronize do
-                updated_status[index] = Status::Working.to_i
-                updated_ends.push(index)
-              end
+              updated_ends, updated_status = self.set_status(index, updated_ends, updated_status, Status::Working, true)
             end
-            generate_csp([companion.public_url, companion.i2p_public_url], index)
+            self.generate_csp([companion.public_url, companion.i2p_public_url], index)
           else
-            @@check_mutex.synchronize do
-              updated_status[index] = Status::Dead.to_i
-            end
+            _, updated_status = self.set_status(index, updated_ends, updated_status, Status::Dead, false)
           end
         rescue
-          @@check_mutex.synchronize do
-            updated_status[index] = Status::Dead.to_i
-          end
+          _, updated_status = self.set_status(index, updated_ends, updated_status, Status::Dead, false)
         ensure
           LOGGER.trace("Invidious companion: Done Index: \"#{index}\"")
           channels.send(nil)
@@ -92,6 +79,14 @@ module BackendInfo
         @@csp[index] += " #{fixed_url}"
       end
     end
+  end
+
+  private def set_status(index, updated_ends, updated_status, status, push = false)
+    @@check_mutex.synchronize do
+      updated_status[index] = status.to_i
+      updated_ends.push(index) if push
+    end
+    return {updated_ends, updated_status}
   end
 
   def get_status
