@@ -85,8 +85,10 @@ module Invidious::Routes::BeforeAll
           env.set "current_companion", current_companion
 
           if host.split(".").last == "i2p"
+            env.set "using_i2p", true
             env.set "companion_public_url", CONFIG.invidious_companion[current_companion].i2p_public_url.to_s
           else
+            env.set "using_i2p", false
             env.set "companion_public_url", CONFIG.invidious_companion[current_companion].public_url.to_s
           end
         end
