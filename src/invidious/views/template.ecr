@@ -116,7 +116,7 @@
                     companion_switched = env.get?("companion_switched")
                 %>
                 <div class="h-box" style="margin-bottom: 10px;">
-                    <b>Switch Backend:</b>
+                    <b><%= translate(locale, "companion_switch_backend") %></b>
                     <% if domain %>
                         <% CONFIG.invidious_companion.each_with_index do | companion, index | %>
                         <% next if companion.community && !preferences.show_community_backends %>

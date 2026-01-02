@@ -536,5 +536,6 @@
     "backend_unavailable": "El backend seleccionado no está disponible. Has sido redireccionado al siguiente",
     "timeline_parse_error_show_technical_details": "Enseñar detalles técnicos",
     "timeline_parse_error_placeholder_message": "Invidious ha encontrado un error al tratar de procesar este elemento. Para más información ver abajo:",
-    "timeline_parse_error_placeholder_heading": "Imposible procesar este elemento"
+    "timeline_parse_error_placeholder_heading": "Imposible procesar este elemento",
+    "companion_switch_backend": "Cambiar de backend:"
 }

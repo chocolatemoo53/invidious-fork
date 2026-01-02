@@ -549,5 +549,6 @@
     "error_transcripts_none_available": "No transcripts are available",
     "transcript_widget_title": "Transcript",
     "transcript_widget_no_js_change_transcript_btn": "Swap",
-    "dmca_content": "This video cannot be downloaded on this instance due to a DMCA/copyright infringement letter sent to the instance administrator."
+    "dmca_content": "This video cannot be downloaded on this instance due to a DMCA/copyright infringement letter sent to the instance administrator.",
+    "companion_switch_backend": "Switch backend:"
 }
