@@ -59,6 +59,7 @@ struct ConfigPreferences
   property hidden_channels : Array(String)? = nil
   @[YAML::Field(ignore: true)]
   property default_trending_type : Invidious::Routes::Feeds::TrendingTypes = Invidious::Routes::Feeds::TrendingTypes::Default
+  property show_community_backends : Bool = false
 
   def to_tuple
     {% begin %}
@@ -95,6 +96,7 @@ class Config
 
     property note : String = ""
     property domain : Array(String) = [] of String
+    property community : Bool = false
 
     # Indicates if this companion instance uses the built-in proxy
     property builtin_proxy : Bool = false

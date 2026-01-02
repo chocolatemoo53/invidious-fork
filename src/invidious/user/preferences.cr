@@ -59,6 +59,7 @@ struct Preferences
   property hidden_channels : Array(String)? = nil
   property default_trending_type : Invidious::Routes::Feeds::TrendingTypes = Invidious::Routes::Feeds::TrendingTypes::Default
   property default_playlist : String? = nil
+  property show_community_backends : Bool = false
 
   module BoolToString
     def self.to_json(value : String, json : JSON::Builder)

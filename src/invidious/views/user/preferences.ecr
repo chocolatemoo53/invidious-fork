@@ -236,6 +236,12 @@
             </div>
 
             <div class="pure-control-group">
+                <label for="show_community_backends"><%= translate(locale, "preferences_show_community_backends_label") %></label>
+                <input name="show_community_backends" id="show_community_backends" type="checkbox" <% if preferences.show_community_backends %>checked<% end %>>
+                <span class="preference-description"><%= translate(locale, "preferences_show_community_backends_description") %></span>
+            </div>
+
+            <div class="pure-control-group">
                 <label for="hidden_channels"><%= translate(locale, "preferences_hidden_channels") %></label>
                 <% hidden_channels = preferences.hidden_channels %>
                 <textarea name="hidden_channels" id="hidden_channels" class="hidden-channels"><%= hidden_channels[0...].join("\n") if hidden_channels %></textarea>

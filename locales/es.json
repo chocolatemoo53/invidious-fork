@@ -71,6 +71,8 @@
     "preferences_thin_mode_label": "Modo compacto: ",
     "preferences_category_misc": "Preferencias misceláneas",
     "preferences_automatic_instance_redirect_label": "Redirección automática de instancia (segunda opción a redirect.invidious.io): ",
+    "preferences_show_community_backends_label": "Mostrar backends comunitarios? ",
+    "preferences_show_community_backends_description": "Los backends comunitarios son backends que no están alojados por el propietario de la instancia, sino por terceros en los que el propietario de la instancia confía. ¡Tú decides si usarlos o no!",
     "preferences_category_subscription": "Preferencias de la suscripción",
     "preferences_annotations_subscribed_label": "¿Mostrar anotaciones por defecto para los canales suscritos? ",
     "Redirect homepage to feed: ": "Redirigir la página de inicio a la fuente: ",

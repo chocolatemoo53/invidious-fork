@@ -172,6 +172,10 @@ module Invidious::Routes::PreferencesRoute
     default_trending_type = env.params.body["default_trending_type"]?.try &.as(String)
     default_trending_type ||= Invidious::Routes::Feeds::TrendingTypes::Default
 
+    show_community_backends = env.params.body["show_community_backends"]?.try &.as(String)
+    show_community_backends ||= "off"
+    show_community_backends= show_community_backends == "on"
+
     # Convert to JSON and back again to take advantage of converters used for compatibility
     preferences = Preferences.from_json({
       annotations:                 annotations,
@@ -211,6 +215,7 @@ module Invidious::Routes::PreferencesRoute
       default_playlist:            default_playlist,
       hidden_channels:             hidden_channels,
       default_trending_type:       default_trending_type,
+      show_community_backends:     show_community_backends,
     }.to_json)
 
     if user = env.get? "user"

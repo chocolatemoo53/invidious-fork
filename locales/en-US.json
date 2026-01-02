@@ -117,6 +117,8 @@
     "preferences_thin_mode_label": "Thin mode: ",
     "preferences_category_misc": "Miscellaneous preferences",
     "preferences_automatic_instance_redirect_label": "Automatic instance redirection (fallback to redirect.invidious.io): ",
+    "preferences_show_community_backends_label": "Display community backends? ",
+    "preferences_show_community_backends_description": "Community backends are backends that are not hosted by the instance owner but by third parties that the instance owner trusts. You decide whether to use them or not!",
     "preferences_category_subscription": "Subscription preferences",
     "preferences_annotations_subscribed_label": "Show annotations by default for subscribed channels? ",
     "Redirect homepage to feed: ": "Redirect homepage to feed: ",
