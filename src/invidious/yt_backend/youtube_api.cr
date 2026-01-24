@@ -652,19 +652,23 @@ module YoutubeAPI
     # Send the POST request
 
     begin
-      if env.nil?
-        working_ends = BackendInfo.get_working_ends
-        current_companion = working_ends.sample
-      else
-        current_companion = env.get("current_companion").as(Int32)
+      if companion_status = COMPANION_STATUS
+        if env.nil?
+          working_ends = companion_status.working_companions.community
+          current_companion = working_ends.sample
+        else
+          current_companion = env.get("current_companion").as(Int32)
+        end
       end
       response_body = Hash(String, JSON::Any).new
 
-      COMPANION_POOL[current_companion].client do |wrapper|
-        companion_base_url = wrapper.companion.private_url.path
+      if current_companion
+        COMPANION_POOL[current_companion].client do |wrapper|
+          companion_base_url = wrapper.companion.private_url.path
 
-        wrapper.client.post("#{companion_base_url}#{endpoint}", headers: headers, body: data.to_json) do |response|
-          response_body = JSON.parse(response.body_io).as_h
+          wrapper.client.post("#{companion_base_url}#{endpoint}", headers: headers, body: data.to_json) do |response|
+            response_body = JSON.parse(response.body_io).as_h
+          end
         end
       end
 

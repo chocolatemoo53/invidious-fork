@@ -25,8 +25,8 @@
                audio_streams.each_with_index do |fmt, i|
                 src_url  = "/latest_version?id=#{video.id}&itag=#{fmt["itag"]}"
                 src_url += "&local=true" if params.local
-                companion_public_url = env.get("companion_public_url").as(String)
-                src_url = companion_public_url + src_url + 
+                companion_public_url = env.get("companion_companion_public_url").as(String)
+                src_url = companion_public_url + src_url +
                             "&check=#{invidious_companion_check_id}" if (invidious_companion)
 
                 bitrate = fmt["bitrate"]
@@ -42,7 +42,7 @@
         <% else %>
             <% if params.quality == "dash"
                src_url = "/api/manifest/dash/id/" + video.id + "?local=true&unique_res=1"
-               companion_public_url = env.get("companion_public_url").as(String)
+               companion_public_url = env.get("companion_companion_public_url").as(String)
                src_url = companion_public_url + src_url +
                             "&check=#{invidious_companion_check_id}" if (invidious_companion)
             %>
@@ -55,7 +55,7 @@
             fmt_stream.each_with_index do |fmt, i|
                 src_url  = "/latest_version?id=#{video.id}&itag=#{fmt["itag"]}"
                 src_url += "&local=true" if params.local
-                companion_public_url = env.get("companion_public_url").as(String)
+                companion_public_url = env.get("companion_companion_public_url").as(String)
                 src_url = companion_public_url + src_url +
                             "&check=#{invidious_companion_check_id}" if (invidious_companion)
 
@@ -73,7 +73,8 @@
 
         <% preferred_captions.each do |caption|
             api_captions_url = "/api/v1/captions/"
-            api_captions_url = invidious_companion.public_url.to_s + api_captions_url if (invidious_companion)
+            companion_public_url = env.get("companion_companion_public_url").as(String)
+            api_captions_url = companion_public_url + api_captions_url if (invidious_companion)
             api_captions_check_id = "&check=#{invidious_companion_check_id}"
         %>
             <track kind="captions" src="<%= api_captions_url %><%= video.id %>?label=<%= caption.name %><%= api_captions_check_id %>" label="<%= caption.name %>">
@@ -81,7 +82,8 @@
 
         <% captions.each do |caption|
             api_captions_url = "/api/v1/captions/"
-            api_captions_url = invidious_companion.public_url.to_s + api_captions_url if (invidious_companion)
+            companion_public_url = env.get("companion_companion_public_url").as(String)
+            api_captions_url = companion_public_url + api_captions_url if (invidious_companion)
             api_captions_check_id = "&check=#{invidious_companion_check_id}"
         %>
             <track kind="captions" src="<%= api_captions_url %><%= video.id %>?label=<%= caption.name %><%= api_captions_check_id %>" label="<%= caption.name %>">

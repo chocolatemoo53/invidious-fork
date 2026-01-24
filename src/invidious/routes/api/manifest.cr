@@ -9,7 +9,7 @@ module Invidious::Routes::API::Manifest
     region = env.params.query["region"]?
 
     if CONFIG.invidious_companion.present?
-      companion_public_url = env.get("companion_public_url").as(String)
+      companion_public_url = env.get("companion_companion_public_url").as(String)
       return env.redirect "#{companion_public_url}/api/manifest/dash/id/#{id}?#{env.params.query}"
     end
 

@@ -56,10 +56,7 @@ struct Invidious::User
 
     # Backend (CONFIG.server_id_cookie_name) cookie
     # Parameter "domain" comes from the global config
-    def server_id(domain : String?, server_id : Int32? = nil) : HTTP::Cookie
-      if server_id.nil?
-        server_id = rand(CONFIG.invidious_companion.size)
-      end
+    def server_id(domain : String?, server_id : Int32) : HTTP::Cookie
       # Strip the port from the domain if it's being accessed from another port
       # Browsers will reject the cookie if it contains the port number. This is
       # because `example.com:3000` is not the same as `example.com` on a cookie.

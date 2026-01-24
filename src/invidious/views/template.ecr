@@ -108,28 +108,30 @@
                 </div>
 
                 <%
-                    if CONFIG.invidious_companion.present?
+                    if companion_status = COMPANION_STATUS
                     current_backend = env.get?("current_companion").try &.as(Int32)
-                    domain = env.get?("using_domain")
+                    domain = env.get?("companion_using_domain")
                     scheme = env.get("scheme")
-                    status = BackendInfo.get_status
                     companion_switched = env.get?("companion_switched")
-                    using_i2p = env.get?("using_i2p")
+                    using_i2p = env.get?("companion_using_i2p")
+                    companions = companion_status.companions
                 %>
                 <div class="h-box" style="margin-bottom: 10px;">
                     <b><%= translate(locale, "companion_switch_backend") %></b>
                     <% if domain %>
-                        <% CONFIG.invidious_companion.each_with_index do | companion, index | %>
-                        <% next if companion.community && !preferences.show_community_backends %>
-                        <% next if companion.i2p_public_url.host.nil? && using_i2p %>
-                        <% host_backend = env.request.headers["Host"].sub(/([^.]+)(\d+)/, "\\1#{index+1}") %>
-                        <% is_current_backend_host = host_backend == env.request.headers["Host"] %>
+                        <% CONFIG.invidious_companion.each_with_index do | companion, index |
+                        next if companion.community && !preferences.show_community_backends
+                        next if companion.i2p_public_url.host.nil? && using_i2p
+                        host_backend = env.request.headers["Host"].sub(/([^.]+)(\d+)/, "\\1#{index+1}")
+                        is_current_backend_host = host_backend == env.request.headers["Host"]
+                        backend_name_prefix = CONFIG.backend_name_prefix + (index + 1).to_s
+                        %>
                             <a href="<%= scheme %>://<%= host_backend %><%= env.request.resource %>" style="<%= is_current_backend_host ? "text-decoration-line: underline;" : "" %> display: inline-block;">
-                                <%= HTML.escape(CONFIG.backend_name_prefix + (index + 1).to_s) %> <%= HTML.escape(companion.note) %>
+                                <%= HTML.escape(backend_name_prefix) %> <%= HTML.escape(companion.note) %>
                                 <span style="color:
-                                    <% if status[index] == BackendInfo::Status::Dead.to_i %> #fd4848; <% end %>
-                                    <% if status[index] == BackendInfo::Status::Blocked.to_i %> #ddc338; <% end %>
-                                    <% if status[index] == BackendInfo::Status::Working.to_i %> #42ae3c; <% end %>
+                                    <% if companions[index].status == CompanionStatus::Status::Down %> #fd4848; <% end %>
+                                    <% if companions[index].status == CompanionStatus::Status::Blocked %> #ddc338; <% end %>
+                                    <% if companions[index].status == CompanionStatus::Status::Working %> #42ae3c; <% end %>
                                 ">❚</span>
                             </a>
                             <% if !(index == CONFIG.invidious_companion.size-1) %>
@@ -137,16 +139,19 @@
                             <% end %>
                         <% end %>
                     <% else %>
-                        <% current_page = env.get("current_page") %>
-                        <% CONFIG.invidious_companion.each_with_index do | companion, index | %>
-                        <% next if companion.community && !preferences.show_community_backends %>
-                        <% next if companion.i2p_public_url.host.nil? && using_i2p %>
+                        <%
+                        current_page = env.get("current_page")
+                        CONFIG.invidious_companion.each_with_index do | companion, index |
+                        next if companion.community && !preferences.show_community_backends
+                        next if companion.i2p_public_url.host.nil? && using_i2p
+                        backend_name_prefix = CONFIG.backend_name_prefix + (index + 1).to_s
+                        %>
                             <a href="/switchbackend?backend_id=<%= index.to_s %>&referer=<%= current_page %>" style="<%= current_backend == index ? "text-decoration-line: underline;" : "" %> display: inline-block;">
-                                <%= HTML.escape(CONFIG.backend_name_prefix + (index + 1).to_s) %> <%= HTML.escape(companion.note) %>
+                                <%= HTML.escape(backend_name_prefix) %> <%= HTML.escape(companion.note) %>
                                 <span style="color:
-                                    <% if status[index] == BackendInfo::Status::Dead.to_i %> #fd4848; <% end %>
-                                    <% if status[index] == BackendInfo::Status::Blocked.to_i %> #ddc338; <% end %>
-                                    <% if status[index] == BackendInfo::Status::Working.to_i %> #42ae3c; <% end %>
+                                    <% if companions[index].status == CompanionStatus::Status::Down %> #fd4848; <% end %>
+                                    <% if companions[index].status == CompanionStatus::Status::Blocked %> #ddc338; <% end %>
+                                    <% if companions[index].status == CompanionStatus::Status::Working %> #42ae3c; <% end %>
                                 ">❚</span>
                             </a>
                             <% if !(index == CONFIG.invidious_companion.size-1) %>
@@ -342,7 +347,7 @@
                 <span class="left">
                     <%
                         if CONFIG.invidious_companion.present?
-                        companion_public_url = env.get("companion_public_url").as(String)
+                        companion_public_url = env.get("companion_companion_public_url").as(String)
                     %>
                     <div class="box">You are currently using Backend: <%= current_backend ? companion_public_url : "Unable to get backend, this is bug, please report it!" %></div>
                     <% end %>

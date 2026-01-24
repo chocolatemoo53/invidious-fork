@@ -1,12 +1,7 @@
 module Invidious::Routes::BeforeAll
-  private COMPANION_PREFIXES = [] of String
+  extend self
 
-  CONFIG.invidious_companion.each_with_index do |_, i|
-    prefix = CONFIG.invidious_companion_prefix + "#{i + 1}"
-    COMPANION_PREFIXES << prefix
-  end
-
-  def self.handle(env)
+  def handle(env)
     preferences = Preferences.from_json("{}")
     host = env.request.headers["Host"]
 
@@ -28,75 +23,6 @@ module Invidious::Routes::BeforeAll
     env.response.headers["X-XSS-Protection"] = "1; mode=block"
     env.response.headers["X-Content-Type-Options"] = "nosniff"
 
-    extra_media_csp = ""
-    extra_connect_csp = ""
-
-    if CONFIG.invidious_companion.present?
-      if !{
-           "/sb/",
-           "/vi/",
-           "/s_p/",
-           "/yts/",
-           "/ggpht/",
-         }.any? { |r| env.request.resource.starts_with? r }
-        current_companion_d = host.split(":")[0].split(".")[0]
-
-        if index = COMPANION_PREFIXES.index(current_companion_d)
-          env.set "using_domain", true
-          env.set "current_companion", index
-          env.set "companion_public_url", CONFIG.invidious_companion[index].public_url.to_s
-        else
-          if !env.request.cookies[CONFIG.server_id_cookie_name]?
-            env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(host)
-          end
-
-          begin
-            current_companion = env.request.cookies[CONFIG.server_id_cookie_name].value.try &.to_i
-          rescue
-            working_ends = BackendInfo.get_working_ends
-            if !working_ends.empty?
-              current_companion = working_ends.sample
-            else
-              current_companion = rand(CONFIG.invidious_companion.size)
-            end
-          end
-
-          if current_companion < 0
-            current_companion = rand(CONFIG.invidious_companion.size)
-          end
-
-          if current_companion >= CONFIG.invidious_companion.size
-            current_companion = current_companion % CONFIG.invidious_companion.size
-            env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(host, current_companion)
-          end
-
-          companion_status = BackendInfo.get_status
-
-          if companion_status[current_companion] != BackendInfo::Status::Working.to_i
-            current_companion = 0 if current_companion == companion_status.size - 1
-            alive_companion = companion_status.index(BackendInfo::Status::Working.to_i, offset: current_companion)
-            if alive_companion
-              env.set "companion_switched", true
-              current_companion = alive_companion
-              env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(host, current_companion)
-            end
-          end
-
-          env.set "current_companion", current_companion
-
-          if host.split(".").last == "i2p"
-            env.set "using_i2p", true
-            env.set "companion_public_url", CONFIG.invidious_companion[current_companion].i2p_public_url.to_s
-          else
-            env.set "using_i2p", false
-            env.set "companion_public_url", CONFIG.invidious_companion[current_companion].public_url.to_s
-          end
-        end
-
-        extra_media_csp, extra_connect_csp = BackendInfo.get_csp(env.get("current_companion").as(Int32))
-      end
-    end
-
     # Only allow the pages at /embed/* to be embedded
     if env.request.resource.starts_with?("/embed")
       frame_ancestors = "'self' file: http: https:"
@@ -106,22 +32,6 @@ module Invidious::Routes::BeforeAll
 
     scheme = env.request.headers["X-Forwarded-Proto"]? || ("https" if CONFIG.https_only) || "http"
     env.set "scheme", scheme
-
-    # TODO: Remove style-src's 'unsafe-inline', requires to remove all
-    # inline styles (<style> [..] </style>, style=" [..] ")
-    env.response.headers["Content-Security-Policy"] = {
-      "default-src 'none'",
-      "script-src 'self'",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: " + "#{scheme}://#{env.request.headers["Host"]?}",
-      "font-src 'self' data:",
-      "connect-src 'self'" + extra_connect_csp,
-      "manifest-src 'self'",
-      "media-src 'self' blob:" + extra_media_csp,
-      "child-src 'self' blob:",
-      "frame-src 'self'",
-      "frame-ancestors " + frame_ancestors,
-    }.join("; ") if CONFIG.csp
 
     env.response.headers["Referrer-Policy"] = "same-origin"
 
@@ -183,6 +93,32 @@ module Invidious::Routes::BeforeAll
     preferences.locale = locale
     env.set "preferences", preferences
 
+    companion_csp = ""
+    if companion_status = COMPANION_STATUS
+      companion_csp = Invidious::Routes::BeforeAll::Companion.process_companion(
+        env,
+        host,
+        companion_status,
+        preferences
+      )
+    end
+
+    # TODO: Remove style-src's 'unsafe-inline', requires to remove all
+    # inline styles (<style> [..] </style>, style=" [..] ")
+    env.response.headers["Content-Security-Policy"] = {
+      "default-src 'none'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: " + "#{scheme}://#{env.request.headers["Host"]?}",
+      "font-src 'self' data:",
+      "connect-src 'self' " + companion_csp,
+      "manifest-src 'self'",
+      "media-src 'self' blob: " + companion_csp,
+      "child-src 'self' blob:",
+      "frame-src 'self'",
+      "frame-ancestors " + frame_ancestors,
+    }.join("; ") if CONFIG.csp
+
     # Allow media resources to be loaded from google servers
     # TODO: check if *.youtube.com can be removed
     #
@@ -210,5 +146,184 @@ module Invidious::Routes::BeforeAll
     end
 
     env.set "current_page", URI.encode_www_form(current_page)
+  end
+end
+
+#
+# Invidious companion processing
+#
+module Invidious::Routes::BeforeAll::Companion
+  extend self
+  private COMPANION_PREFIXES = [] of String
+
+  if c_prefix = CONFIG.invidious_companion_prefix
+    CONFIG.invidious_companion.each_with_index do |_, i|
+      prefix = c_prefix + "#{i + 1}"
+      COMPANION_PREFIXES << prefix
+    end
+  end
+
+  def process_companion(
+    env : HTTP::Server::Context,
+    host : String,
+    companion_status : CompanionStatus,
+    preferences : Preferences,
+  )
+    cookie_name = CONFIG.server_id_cookie_name
+    c_size = CONFIG.invidious_companion.size
+    current_companion = 0
+
+    # When accessing via domain we assume the user explicitely wants to access
+    # that domain.
+    if CONFIG.invidious_companion_prefix.presence && (index = self.using_invidious_domain?(host))
+      env.set "companion_using_domain", true
+      env.set "companion_companion_public_url", CONFIG.invidious_companion[index].public_url.to_s
+      current_companion = index
+    else
+      # Set cookie if there is no cookie
+      if !env.request.cookies.has_key?(cookie_name)
+        current_companion = self.find_available_companion(env, host, nil, companion_status, preferences)
+        if current_companion
+          self.set_cookie(env, host, current_companion)
+        else
+          return ""
+        end
+      else
+        begin
+          current_companion = get_cookie(env)
+          current_companion = self.find_available_companion(env, host, current_companion, companion_status, preferences)
+        rescue
+          current_companion = rand(c_size)
+          self.set_cookie(env, host, current_companion)
+        end
+      end
+
+      if current_companion.nil?
+        return ""
+      end
+
+      # Set I2P public URL when it's being accessed via I2P.
+      # I2P is not like Tor, therefore I2P users can't connect to "clearnet" sites
+      # like it would work in Tor.
+      if host.split(".").last == "i2p"
+        env.set "companion_using_i2p", true
+        env.set "companion_companion_public_url", CONFIG.invidious_companion[current_companion].i2p_public_url.to_s
+      else
+        env.set "companion_using_i2p", false
+        env.set "companion_companion_public_url", CONFIG.invidious_companion[current_companion].public_url.to_s
+      end
+    end
+
+    env.set "current_companion", current_companion
+    companion_csp = companion_status.companions[current_companion].csp
+    return companion_csp
+  end
+
+  private def set_cookie(
+    env : HTTP::Server::Context,
+    host : String,
+    current_companion : Int32,
+  )
+    cookie_name = CONFIG.server_id_cookie_name
+    env.response.cookies[cookie_name] = Invidious::User::Cookies.server_id(host, current_companion)
+  end
+
+  private def get_cookie(env : HTTP::Server::Context)
+    cookie_name = CONFIG.server_id_cookie_name
+    return env.request.cookies[cookie_name].value.try &.to_i
+  end
+
+  private def find_available_companion(
+    env : HTTP::Server::Context,
+    host : String,
+    current_companion : Int32?,
+    companion_status : CompanionStatus,
+    preferences : Preferences,
+  )
+    companions = companion_status.companions
+    working_companions = companion_status.working_companions
+    c_size = companions.size
+
+    if !preferences.show_community_backends
+      working_companions = working_companions.all
+    else
+      working_companions = working_companions.community
+    end
+
+    if current_companion.nil?
+      available_companion = self.get_available_companion(c_size, working_companions)
+      if available_companion
+        current_companion = available_companion
+        return current_companion
+      else
+        return nil
+      end
+    end
+
+    current_companion = self.wrap_current_companion(env, host, current_companion, c_size, working_companions)
+    if current_companion.nil?
+      return nil
+    end
+
+    status = companions[current_companion].status
+    if status != CompanionStatus::Status::Working
+      alive_companion = self.get_available_companion(c_size, working_companions)
+      if alive_companion
+        current_companion = alive_companion
+        env.set "companion_switched", true
+        self.set_cookie(env, host, current_companion)
+      end
+    end
+
+    return current_companion
+  end
+
+  private def using_invidious_domain?(host : String)
+    current_companion_domain = host.split(":")[0].split(".")[0]
+    if index = COMPANION_PREFIXES.index(current_companion_domain)
+      return index
+    else
+      return nil
+    end
+  end
+
+  # Checks if the current_companion does not match any companion
+  private def wrap_current_companion(
+    env : HTTP::Server::Context,
+    host : String,
+    current_companion : Int32,
+    invidious_companion_size : Int32,
+    working_companions : Array(Int32),
+  )
+    if (current_companion < 0) || current_companion >= invidious_companion_size
+      current_companion = self.get_available_companion(invidious_companion_size, working_companions)
+      if current_companion
+        self.set_cookie(env, host, current_companion)
+      else
+        current_companion = rand(invidious_companion_size)
+      end
+    end
+
+    return current_companion
+  end
+
+  private def check_community(env, current_companion, companions)
+    companion = companions[current_companion].companion
+
+    if companion.community
+    end
+  end
+
+  private def get_available_companion(
+    invidious_companion_size : Int32,
+    working_companions : Array(Int32),
+  )
+    if !working_companions.empty?
+      # Choose a random working companion
+      current_companion = working_companions.sample
+      return current_companion
+    else
+      return nil
+    end
   end
 end

@@ -268,7 +268,7 @@ module Invidious::Routes::VideoPlayback
   # so we have a mechanism here to redirect to the latest version
   def self.latest_version(env)
     if CONFIG.invidious_companion.present?
-      companion_public_url = env.get("companion_public_url").as(String)
+      companion_public_url = env.get("companion_companion_public_url").as(String)
       return env.redirect "#{companion_public_url}/latest_version?#{env.params.query}"
     end
 

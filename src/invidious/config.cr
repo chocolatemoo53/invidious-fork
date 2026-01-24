@@ -209,7 +209,7 @@ class Config
   property invidious_companion_key : String = ""
 
   # Invidious companion prefix for numbered domains
-  property invidious_companion_prefix : String = ""
+  property invidious_companion_prefix : String? = nil
 
   # Saved cookies in "name1=value1; name2=value2..." format
   @[YAML::Field(converter: Preferences::StringToCookies)]

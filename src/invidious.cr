@@ -202,10 +202,16 @@ Invidious::Jobs.register Invidious::Jobs::ClearExpiredItemsJob.new
 
 Invidious::Jobs.register Invidious::Jobs::InstanceListRefreshJob.new
 
-if CONFIG.invidious_companion.present?
-  Invidious::Jobs.register Invidious::Jobs::CheckBackend.new
+COMPANION_STATUS = begin
+  CompanionStatus.new if CONFIG.invidious_companion.present?
+rescue
+  nil
+end
+
+if companion_status = COMPANION_STATUS
+  Invidious::Jobs.register Invidious::Jobs::CompanionChecker.new(companion_status)
 else
-  LOGGER.info("jobs: Disabling CheckBackend job. invidious-companion and their respective external video playback proxies (if set on invidious-companion) will not be checked")
+  LOGGER.info("jobs: Disabling CompanionChecker job. invidious-companion and their respective external video playback proxies (if set on invidious-companion) will not be checked")
 end
 
 Invidious::Jobs.start_all
