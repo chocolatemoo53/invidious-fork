@@ -260,10 +260,18 @@ module Invidious::Routes::BeforeAll::Companion
       working_companions = working_companions.community
     end
 
+    if !current_companion.nil?
+      if working_companions.empty?
+        current_companion = self.wrap_current_companion(env, host, current_companion, c_size, working_companions, preferences)
+        return current_companion
+      end
+    end
+
     if current_companion.nil?
       available_companion = self.get_available_companion(c_size, working_companions)
       if available_companion
         current_companion = available_companion
+        current_companion = self.wrap_current_companion(env, host, current_companion, c_size, working_companions, preferences)
         return current_companion
       else
         return nil

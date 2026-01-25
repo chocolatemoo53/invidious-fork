@@ -115,7 +115,8 @@ class CompanionStatus
   end
 
   private def healthcheck(companion : Config::CompanionConfig, index : Int32)
-    client = HTTP::Client.new(companion.private_url, tls: @tlscontext)
+    tls = @tlscontext if companion.private_url.scheme == "https"
+    client = HTTP::Client.new(companion.private_url, tls: tls)
     client.connect_timeout = 10.seconds
 
     response = client.get(CONFIG.check_backends_path)
