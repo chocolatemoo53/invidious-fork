@@ -3,13 +3,22 @@
 module Invidious::Routes::BackendSwitcher
   def self.switch(env)
     referer = get_referer(env, unroll: false)
-    backend_id = env.params.query["backend_id"]?.try &.to_i
+    companion_id = env.params.query["companion_id"]?.try &.to_i
+    preferences = env.get("preferences").as(Preferences)
+    user = env.get? "user"
 
-    if backend_id.nil?
-      return error_template(400, "Backend ID is required")
+    if companion_id.nil?
+      return error_template(400, "Companion ID is required")
     end
 
-    env.response.cookies[CONFIG.server_id_cookie_name] = Invidious::User::Cookies.server_id(env.request.headers["Host"], backend_id)
+    if user
+      user = user.as(User)
+      user.preferences.current_companion = companion_id
+      Invidious::Database::Users.update_preferences(user)
+    else
+      preferences.current_companion = companion_id
+      env.response.cookies["PREFS"] = Invidious::User::Cookies.prefs(env.request.headers["Host"], preferences)
+    end
 
     env.redirect referer
   end

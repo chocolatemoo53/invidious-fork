@@ -169,7 +169,6 @@ module Invidious::Routes::BeforeAll::Companion
     companion_status : CompanionStatus,
     preferences : Preferences,
   )
-    cookie_name = CONFIG.server_id_cookie_name
     c_size = CONFIG.invidious_companion.size
     current_companion = 0
 
@@ -181,20 +180,20 @@ module Invidious::Routes::BeforeAll::Companion
       current_companion = index
     else
       # Set cookie if there is no cookie
-      if !env.request.cookies.has_key?(cookie_name)
+      if !env.request.cookies.has_key?("PREFS")
         current_companion = self.find_available_companion(env, host, nil, companion_status, preferences)
         if current_companion
-          self.set_cookie(env, host, current_companion)
+          self.set_companion(env, preferences, host, current_companion)
         else
           return ""
         end
       else
         begin
-          current_companion = get_cookie(env)
+          current_companion = get_companion(preferences)
           current_companion = self.find_available_companion(env, host, current_companion, companion_status, preferences)
         rescue
           current_companion = rand(c_size)
-          self.set_cookie(env, host, current_companion)
+          self.set_companion(env, preferences, host, current_companion)
         end
       end
 
@@ -219,18 +218,29 @@ module Invidious::Routes::BeforeAll::Companion
     return companion_csp
   end
 
-  private def set_cookie(
+  private def set_companion(
     env : HTTP::Server::Context,
+    preferences : Preferences,
     host : String,
     current_companion : Int32,
   )
-    cookie_name = CONFIG.server_id_cookie_name
-    env.response.cookies[cookie_name] = Invidious::User::Cookies.server_id(host, current_companion)
+    user = env.get? "user"
+
+    if user
+      user = user.as(User)
+      user.preferences.current_companion = current_companion
+      Invidious::Database::Users.update_preferences(user)
+    else
+      preferences.current_companion = current_companion
+      env.set "preferences", preferences
+      env.response.cookies["PREFS"] = Invidious::User::Cookies.prefs(env.request.headers["Host"], preferences)
+    end
   end
 
-  private def get_cookie(env : HTTP::Server::Context)
-    cookie_name = CONFIG.server_id_cookie_name
-    return env.request.cookies[cookie_name].value.try &.to_i
+  private def get_companion(
+    preferences : Preferences,
+  )
+    return preferences.current_companion
   end
 
   private def find_available_companion(
@@ -260,7 +270,7 @@ module Invidious::Routes::BeforeAll::Companion
       end
     end
 
-    current_companion = self.wrap_current_companion(env, host, current_companion, c_size, working_companions)
+    current_companion = self.wrap_current_companion(env, host, current_companion, c_size, working_companions, preferences)
     if current_companion.nil?
       return nil
     end
@@ -271,7 +281,7 @@ module Invidious::Routes::BeforeAll::Companion
       if alive_companion
         current_companion = alive_companion
         env.set "companion_switched", true
-        self.set_cookie(env, host, current_companion)
+        self.set_companion(env, preferences, host, current_companion)
       end
     end
 
@@ -294,11 +304,12 @@ module Invidious::Routes::BeforeAll::Companion
     current_companion : Int32,
     invidious_companion_size : Int32,
     working_companions : Array(Int32),
+    preferences : Preferences,
   )
     if (current_companion < 0) || current_companion >= invidious_companion_size
       current_companion = self.get_available_companion(invidious_companion_size, working_companions)
       if current_companion
-        self.set_cookie(env, host, current_companion)
+        self.set_companion(env, preferences, host, current_companion)
       else
         current_companion = rand(invidious_companion_size)
       end

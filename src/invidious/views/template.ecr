@@ -146,7 +146,7 @@
                         next if companion.i2p_public_url.host.nil? && using_i2p
                         backend_name_prefix = CONFIG.backend_name_prefix + (index + 1).to_s
                         %>
-                            <a href="/switchbackend?backend_id=<%= index.to_s %>&referer=<%= current_page %>" style="<%= current_backend == index ? "text-decoration-line: underline;" : "" %> display: inline-block;">
+                            <a href="/switchbackend?companion_id=<%= index.to_s %>&referer=<%= current_page %>" style="<%= current_backend == index ? "text-decoration-line: underline;" : "" %> display: inline-block;">
                                 <%= HTML.escape(backend_name_prefix) %> <%= HTML.escape(companion.note) %>
                                 <span style="color:
                                     <% if companions[index].status == CompanionStatus::Status::Down %> #fd4848; <% end %>
@@ -205,7 +205,7 @@
                     <% else %>
                         <p><%=translate(locale, "default_invidious_footer_text")%></p>
                     <% end %>
-                    
+
                 </div>
                 <div class="footer-section">
                     <b class="footer-section-header"><%= translate(locale, "footer_navigation_section_header")%></b>
@@ -266,7 +266,7 @@
                             </a>
                         </li>
 
-                    </ul>                
+                    </ul>
                 </div>
                 <% if CONFIG.instance_maintainer_email || CONFIG.modified_source_code_url || CONFIG.footer_instance_tos_link || CONFIG.footer_instance_privacy_policy_link %>
                     <div class="footer-section">
@@ -339,7 +339,7 @@
                                 <%= translate(locale, "footer_faq_link") %>
                             </a>
                         </li>
-                    </ul>                
+                    </ul>
                 </div>
             </div>
             <hr/>

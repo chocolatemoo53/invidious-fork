@@ -174,7 +174,7 @@ module Invidious::Routes::PreferencesRoute
 
     show_community_backends = env.params.body["show_community_backends"]?.try &.as(String)
     show_community_backends ||= "off"
-    show_community_backends= show_community_backends == "on"
+    show_community_backends = show_community_backends == "on"
 
     # Convert to JSON and back again to take advantage of converters used for compatibility
     preferences = Preferences.from_json({

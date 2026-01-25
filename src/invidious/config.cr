@@ -60,6 +60,8 @@ struct ConfigPreferences
   @[YAML::Field(ignore: true)]
   property default_trending_type : Invidious::Routes::Feeds::TrendingTypes = Invidious::Routes::Feeds::TrendingTypes::Default
   property show_community_backends : Bool = false
+  @[YAML::Field(ignore: true)]
+  property current_companion : Int32? = nil
 
   def to_tuple
     {% begin %}
@@ -222,8 +224,6 @@ class Config
   property max_dash_resolution : Int32?
 
   property pubsub_domain : String = ""
-
-  property server_id_cookie_name : String = "COMPANION_ID"
 
   property video_cache : VideoCacheConfig = VideoCacheConfig.from_yaml("")
 

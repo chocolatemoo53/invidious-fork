@@ -1164,15 +1164,6 @@ video_cache:
 #max_dash_resolution: null
 
 ##
-## The name of the cookie to hold the backend id that
-## the client is using.
-##
-## Accepted values: a string
-## Default: "COMPANION_ID"
-##
-#server_id_cookie_name: "COMPANION_ID"
-
-##
 ## Checks if the companions in the `invidious_companion` list
 ## are alive using their `/healthz` endpoint.
 ##
