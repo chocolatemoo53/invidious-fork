@@ -119,7 +119,13 @@ class CompanionStatus
     client = HTTP::Client.new(companion.private_url, tls: tls)
     client.connect_timeout = 10.seconds
 
-    response = client.get(CONFIG.check_backends_path)
+    begin
+      response = client.get(CONFIG.check_backends_path)
+    rescue
+      @companions[index].status = Status::Down
+      return
+    end
+
     if response.status_code == 200
       if response.content_type == "application/json"
         body = response.body

@@ -181,11 +181,13 @@ module Invidious::Routes::BeforeAll::Companion
     else
       # Set cookie if there is no cookie
       if !env.request.cookies.has_key?("PREFS")
+        current_companion = get_companion(preferences)
         current_companion = self.find_available_companion(env, host, nil, companion_status, preferences)
         if current_companion
           self.set_companion(env, preferences, host, current_companion)
         else
-          return ""
+          current_companion = rand(c_size)
+          self.set_companion(env, preferences, host, current_companion)
         end
       else
         begin

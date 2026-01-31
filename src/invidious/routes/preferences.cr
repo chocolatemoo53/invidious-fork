@@ -12,6 +12,7 @@ module Invidious::Routes::PreferencesRoute
 
   def self.update(env)
     locale = env.get("preferences").as(Preferences).locale
+    preferences = env.get("preferences").as(Preferences)
     referer = get_referer(env)
 
     video_loop = env.params.body["video_loop"]?.try &.as(String)
@@ -176,6 +177,12 @@ module Invidious::Routes::PreferencesRoute
     show_community_backends ||= "off"
     show_community_backends = show_community_backends == "on"
 
+    current_companion = preferences.current_companion
+
+    search_privacy = env.params.body["search_privacy"]?.try &.as(String)
+    search_privacy ||= "off"
+    search_privacy = search_privacy == "on"
+
     # Convert to JSON and back again to take advantage of converters used for compatibility
     preferences = Preferences.from_json({
       annotations:                 annotations,
@@ -216,6 +223,8 @@ module Invidious::Routes::PreferencesRoute
       hidden_channels:             hidden_channels,
       default_trending_type:       default_trending_type,
       show_community_backends:     show_community_backends,
+      current_companion:           current_companion,
+      search_privacy:              search_privacy,
     }.to_json)
 
     if user = env.get? "user"
