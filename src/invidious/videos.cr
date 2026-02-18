@@ -308,7 +308,7 @@ def get_video(id, refresh = true, region = nil, force_refresh = false, env : HTT
     # If record was last updated over 10 minutes ago, or video has since premiered,
     # refresh (expire param in response lasts for 6 hours)
     if (refresh &&
-       (Time.utc - video.updated > 10.minutes) ||
+       (Time.utc - video.updated > 21420.seconds) ||
        (video.premiere_timestamp.try &.< Time.utc)) ||
        force_refresh ||
        video.schema_version != Video::SCHEMA_VERSION # cache control
