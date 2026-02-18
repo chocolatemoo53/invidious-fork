@@ -1,15 +1,27 @@
 require "./base.cr"
 require "redis"
-
-VideoCache = Invidious::Database::Videos::Cache.new
+require "lru"
 
 module Invidious::Database::Videos
-  struct VideoCacheInfo
-    property info : String
-    property id : String
-    property updated : String
+  extend self
 
-    def initialize(@info, @id, @updated)
+  @@cache : (CacheMethods::LRU | CacheMethods::InternalRedis | CacheMethods::PostgresSQL)? = nil
+
+  enum CacheType
+    Postgres = 0
+    Redis    = 1
+    LRU      = 2
+  end
+
+  class VideoCacheInfo
+    include DB::Serializable
+    include JSON::Serializable
+
+    property id : String
+    property info : String
+    property updated : Time
+
+    def initialize(@id, @info, @updated)
     end
   end
 
@@ -28,134 +40,56 @@ module Invidious::Database::Videos
       return compressed.gets_to_end
     end
 
-    def decompress(video_info_compressed : String, id : String) : String?
+    def decompress(video_info_compressed : String) : String?
       compressed = IO::Memory.new
       compressed << video_info_compressed
       compressed.rewind
       decompressed = Compress::Deflate::Reader.new(compressed, sync_close: true)
-      begin
-        return decompressed.gets_to_end
-      rescue Compress::Deflate::Error
-        # If there is an error when decompressing the video data,
-        # delete the video from the cache to fetch it again.
-        VideoCache.del(id)
-        return nil
-      end
-    end
-  end
-
-  class Cache
-    def initialize
-      case CONFIG.video_cache.backend
-      when 0
-        @cache = CacheMethods::PostgresSQL.new
-      when 1
-        @cache = CacheMethods::Redis_.new
-      when 2
-        @cache = CacheMethods::LRU.new
-      else
-        LOGGER.debug "Video Cache: Using default cache method to store video cache (PostgreSQL)"
-        @cache = CacheMethods::PostgresSQL.new
-      end
-    end
-
-    def set(video : VideoCacheInfo, expire_time)
-      @cache.set(video, expire_time)
-    end
-
-    def del(id : String)
-      @cache.del(id)
-    end
-
-    def get(id : String)
-      return @cache.get(id)
-    end
-  end
-
-  module CacheUtils
-    extend self
-
-    def to_video(info : String?, time : String?, id : String) : Video?
-      if info && time
-        # With the { we identify if it's a JSON or not
-        if info[0] != '{'
-          info = CacheCompression.decompress(info, id)
-          if info.nil?
-            return nil
-          end
-        end
-        return Video.new({
-          id:      id,
-          info:    JSON.parse(info).as_h,
-          updated: Time.parse(time, "%Y-%m-%d %H:%M:%S %z", Time::Location::UTC),
-        })
-      else
-        return nil
-      end
+      return decompressed.gets_to_end
     end
   end
 
   module CacheMethods
-    # TODO: Save the cache on a file with a Job
     class LRU
       @max_size : Int32
-      @lru = {} of String => String
-      @access = [] of String
 
-      def initialize(@max_size = CONFIG.video_cache.lru_max_size)
+      def initialize(
+        @max_size = CONFIG.video_cache.lru_max_size,
+      )
+        @cache = LRUCache(VideoCacheInfo).new(max_size: @max_size, clean_interval: 1.second)
         LOGGER.info "Video Cache: Using in memory LRU to store video cache"
         LOGGER.info "Video Cache, LRU: LRU cache max size set to #{@max_size}"
       end
 
-      # TODO: Handle expire_time with a Job
       def set(video : VideoCacheInfo, expire_time)
-        self[video.id] = video.info
-        self[video.id + ":time"] = "#{video.updated}"
-      end
-
-      def del(id : String)
-        self.delete(id)
-        self.delete(id + ":time")
-      end
-
-      def get(id : String)
-        info = self[id]
-        time = self[id + ":time"]
-        return CacheUtils.to_video(info, time, id)
-      end
-
-      private def [](key)
-        if @lru[key]?
-          @access.delete(key)
-          @access.push(key)
-          @lru[key]
-        else
-          nil
+        if CONFIG.video_cache.compress
+          video.info = CacheCompression.compress(video.info)
         end
+
+        @cache.set(video.id, video, expire_time)
       end
 
-      private def []=(key, value)
-        if @lru.size >= @max_size
-          lru_key = @access.shift
-          @lru.delete(lru_key)
-        end
-        @lru[key] = value
-        @access.push(key)
+      def del(video_id : String)
+        @cache.del(video_id)
       end
 
-      private def delete(key)
-        if @lru[key]?
-          @lru.delete(key)
-          @access.delete(key)
+      def get(video_id : String)
+        cached_video = @cache.get(video_id)
+        return if cached_video.nil?
+
+        if CONFIG.video_cache.compress && (cached_video.info[0] != '{')
+          cached_video.info = CacheCompression.decompress(cached_video.info)
         end
+
+        cached_video
       end
     end
 
-    class Redis_
-      @redis : Redis::Client
+    class InternalRedis
+      @client : Redis::Client
 
       def initialize
-        @redis = begin
+        @client = begin
           Redis::Client.new(CONFIG.redis_url)
         rescue ex
           LOGGER.fatal "Video Cache: Failed to connect to redis database: '#{ex.message}'"
@@ -163,31 +97,47 @@ module Invidious::Database::Videos
         end
         LOGGER.info "Video Cache: Using Redis compatible DB to store video cache"
         LOGGER.info "Connecting to Redis compatible DB"
-        if @redis.ping
+        if @client.ping
           LOGGER.info "Connected to Redis compatible DB at '#{CONFIG.redis_url}'" if CONFIG.redis_url
         end
       end
 
       def set(video : VideoCacheInfo, expire_time)
-        @redis.set(video.id, video.info, ex: expire_time)
-        @redis.set(video.id + ":time", video.updated.to_s, ex: expire_time)
+        video_json = video.to_json
+
+        if CONFIG.video_cache.compress
+          video_json_compressed = CacheCompression.compress(video_json)
+          @client.set(video.id, video_json_compressed, ex: expire_time)
+        else
+          @client.set(video.id, video_json, ex: expire_time)
+        end
       end
 
-      def del(id : String)
-        @redis.del(id)
-        @redis.del(id + ":time")
+      def del(video_id : String)
+        @client.del(video_id)
       end
 
-      def get(id : String)
-        info = @redis.get(id)
-        time = @redis.get(id + ":time")
-        return CacheUtils.to_video(info, time, id)
+      def get(video_id : String)
+        cached_video = @client.get(video_id)
+        return if cached_video.nil?
+
+        # With the { we identify if it's a JSON or not
+        if CONFIG.video_cache.compress && (cached_video[0] != '{')
+          video_json_decompressed = CacheCompression.decompress(cached_video)
+          return VideoCacheInfo.from_json(video_json_decompressed)
+        else
+          return VideoCacheInfo.from_json(cached_video)
+        end
       end
     end
 
     class PostgresSQL
       def initialize
         LOGGER.info "Video Cache: Using PostgreSQL to store video cache"
+        if CONFIG.video_cache.compress
+          LOGGER.warn "Video Cache: PostgreSQL does not support cache compression, disabling cache compression"
+          CONFIG.video_cache.compress = false
+        end
       end
 
       def set(video : VideoCacheInfo, expire_time)
@@ -200,47 +150,76 @@ module Invidious::Database::Videos
         PG_DB.exec(request, video.id, video.info, video.updated)
       end
 
-      def del(id)
+      def del(video_id)
         request = <<-SQL
           DELETE FROM videos *
           WHERE id = $1
         SQL
 
-        PG_DB.exec(request, id)
+        PG_DB.exec(request, video_id)
       end
 
-      def get(id : String) : Video?
+      def get(video_id : String) : VideoCacheInfo?
         request = <<-SQL
           SELECT * FROM videos
           WHERE id = $1
         SQL
 
-        data = PG_DB.query_one?(request, id, as: VideoCacheInfo)
-
-        if data
-          return CacheUtils.to_video(data.info, data.updated, id)
-        end
+        PG_DB.query_one?(request, video_id, as: VideoCacheInfo)
       end
     end
   end
 
-  extend self
+  def init
+    if !CONFIG.video_cache.enabled
+      LOGGER.info "Video Cache: Cache is disabled, no videos will be cached"
+      return
+    end
+
+    case CONFIG.video_cache.backend
+    when CacheType::Postgres
+      @@cache = CacheMethods::PostgresSQL.new
+    when CacheType::Redis
+      @@cache = CacheMethods::InternalRedis.new
+    when CacheType::LRU
+      @@cache = CacheMethods::LRU.new
+    else
+      LOGGER.debug "Video Cache: Using default cache method to store video cache (PostgreSQL)"
+      @@cache = CacheMethods::PostgresSQL.new
+    end
+  end
 
   def insert(video : Video)
-    video_info = video.info.to_json
-    if CONFIG.video_cache.compress
-      video_info = CacheCompression.compress(video_info)
-    end
-    video_cache_info = VideoCacheInfo.new(video_info, video.id, video.updated.to_s)
-    VideoCache.set(video: video_cache_info, expire_time: 14400) if CONFIG.video_cache.enabled
+    cache = @@cache
+    return if cache.nil?
+
+    video_cache_info = VideoCacheInfo.new(video.id, video.info.to_json, video.updated)
+
+    # Videos expire after 6 hours, so we expire them before it expires in the
+    # youtube side
+    # 3600 * 5.95 = 21420
+    cache.set(video_cache_info, 21420)
   end
 
-  def delete(id)
-    VideoCache.del(id)
+  def delete(video_id) : Nil
+    cache = @@cache
+    return if cache.nil?
+
+    cache.del(video_id)
   end
 
-  def select(id : String) : Video?
-    VideoCache.get(id)
+  def select(video_id : String) : Video?
+    cache = @@cache
+    return if cache.nil?
+
+    cached_video = cache.get(video_id)
+    return if cached_video.nil?
+
+    video = Video.new({
+      id:      video_id,
+      info:    JSON.parse(cached_video.info).as_h,
+      updated: cached_video.updated,
+    })
   end
 
   def delete_expired

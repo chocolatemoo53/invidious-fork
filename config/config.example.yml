@@ -1132,7 +1132,7 @@ video_cache:
     enable: true
 
     ## The backend used for Video cache.
-    ## This can be PostgreSQL (0), Redis (1) or LRU (2).
+    ## This can be PostgreSQL, Redis or LRU.
     ##
     ## Redis is recommended when using more than one
     ## Invidious process for load balancing
@@ -1144,10 +1144,10 @@ video_cache:
     ## by Out-of-Memory. Altrough LRU cache is not saved
     ## across restarts.
     ##
-    ## Accepted values: 0, 1, 2
-    ## Default: 1
+    ## Accepted values: "lru", "redis", "postgres"
+    ## Default: "redis"
     ##
-    backend: 1
+    backend: "redis"
 
     ## Maximum amount of items that can be inside thecache.
     ##

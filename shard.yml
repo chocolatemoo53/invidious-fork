@@ -33,6 +33,8 @@ dependencies:
   http_proxy:
     github: mamantoha/http_proxy
     version: ~> 0.10.3
+  lru:
+    github: fijxu/crystal-lru
 
 development_dependencies:
   spectator:

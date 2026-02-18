@@ -141,6 +141,7 @@ LOGGER = Invidious::LogHandler.new(OUTPUT, CONFIG.log_level, CONFIG.colorize_log
 
 # Check table integrity
 Invidious::Database.check_integrity(CONFIG)
+Invidious::Database::Videos.init
 
 # Minifies Invidious Javascript
 {% if flag?(:minify_debug) || (flag?(:release) || flag?(:production)) && !flag?(:skip_minified_js) %}

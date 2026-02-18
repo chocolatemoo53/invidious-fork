@@ -232,7 +232,7 @@ class Config
     include YAML::Serializable
 
     property enabled : Bool = true
-    property backend : Int32 = 1
+    property backend : Invidious::Database::Videos::CacheType = Invidious::Database::Videos::CacheType::Redis
     # Max quantity of keys that can be held on the LRU cache
     property lru_max_size : Int32 = 18432 # ~512MB
     # Compress cache with Deflate
@@ -437,19 +437,6 @@ class Config
         )
       else
         puts "Config: Either database_url or db.* is required"
-        exit(1)
-      end
-    end
-
-    if config.video_cache.enabled
-      if !config.video_cache.backend.in?(0, 1, 2)
-        puts "Config: 'video_cache_storage', can only be:"
-        puts "0 (PostgreSQL)"
-        puts "1 (Redis compatible DB) (Default)"
-        puts "2 (In memory LRU)"
-      end
-      if config.video_cache.compress && config.video_cache.backend == 0
-        puts "Video Cache compression can only be enabled when using backend 1 (Redis) or 2 (LRU)"
         exit(1)
       end
     end
