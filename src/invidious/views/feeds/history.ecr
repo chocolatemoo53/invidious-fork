@@ -44,6 +44,30 @@
                     </form>
                     </div></div>
                 </div>
+
+                <div class="video-card-row flexible">
+                    <div class="icon-buttons">
+                        <a title="<%= translate(locale, "videoinfo_youTube_embed_link") %>" rel="noopener" referrerpolicy="origin-when-cross-origin" href="https://www.youtube.com/embed/<%= item %>">
+                            <i class="icon ion-md-open"></i>
+                        </a>
+                        <a title="<%= translate(locale, "videoinfo_watch_on_youTube") %>" rel="noreferrer noopener" href="https://www.youtube.com/watch?v=<%= item %>">
+                            <i class="icon ion-logo-youtube"></i>
+                        </a>
+                        <a title="<%= translate(locale, "Audio mode") %>" href="/watch?v=<%= item %>&listen=1">
+                            <i class="icon ion-md-headset"></i>
+                        </a>
+
+                        <% if env.get("preferences").as(Preferences).automatic_instance_redirect%>
+                            <a title="<%= translate(locale, "Switch Invidious Instance") %>" href="/redirect?referer=%2Fwatch<%= URI.encode_www_form("?v=#{item}") %>">
+                                <i class="icon ion-md-jet"></i>
+                            </a>
+                        <% else %>
+                            <a title="<%= translate(locale, "Switch Invidious Instance") %>" href="https://redirect.invidious.io/watch?v=<%= item %>">
+                                <i class="icon ion-md-jet"></i>
+                            </a>
+                        <% end %>
+                    </div>
+                </div>
                 <p></p>
             </div>
         </div>
