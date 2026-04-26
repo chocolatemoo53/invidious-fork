@@ -46,7 +46,7 @@ module Invidious::Routes::Feeds
       preferences = env.get("preferences").as(Preferences)
       templated "feeds/popular"
     else
-      message = translate(locale, "The Popular feed has been disabled by the administrator.")
+      message = I18n.translate(locale, "The Popular feed has been disabled by the administrator.")
       templated "message"
     end
   end
@@ -268,7 +268,7 @@ module Invidious::Routes::Feeds
         xml.element("link", "type": "text/html", rel: "alternate", href: "#{HOST_URL}/feed/subscriptions")
         xml.element("link", "type": "application/atom+xml", rel: "self",
           href: "#{HOST_URL}#{env.request.resource}")
-        xml.element("title") { xml.text translate(locale, "Invidious Private Feed for `x`", user.email) }
+        xml.element("title") { xml.text I18n.translate(locale, "Invidious Private Feed for `x`", user.email) }
 
         (notifications + videos).each do |video|
           video.to_xml(locale, params, xml)

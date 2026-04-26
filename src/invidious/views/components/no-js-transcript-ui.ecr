@@ -1,5 +1,5 @@
 <section class="video-transcript">
-    <header><h3><%=translate(locale, "transcript_widget_title")%></h3></header>
+    <header><h3><%=I18n.translate(locale, "transcript_widget_title")%></h3></header>
     <div id="lines">
         <% transcript_time_url_param = env.params.query.dup %>
         <% transcript_time_url_param.delete_all("t") %>
@@ -16,7 +16,7 @@
                         <p><%= line.line %></p>
                     </div>
                 </a>
-            <% end %> 
+            <% end %>
         <% end %>
     </div>
     <footer>
@@ -40,7 +40,7 @@
                 <% end  %>
             </select>
 
-            <input type="submit" value="<%= translate(locale, "transcript_widget_no_js_change_transcript_btn") %>"/>
+            <input type="submit" value="<%= I18n.translate(locale, "transcript_widget_no_js_change_transcript_btn") %>"/>
         </form>
     </footer>
 </section>

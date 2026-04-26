@@ -45,7 +45,7 @@
                     <div class="pure-u-1 pure-u-md-8-24 user-field">
                         <% if env.get? "user" %>
                             <div class="pure-u-1-4">
-                                <a id="toggle_theme" href="/toggle_theme?referer=<%= env.get?("current_page") %>" class="pure-menu-heading" title="<%= translate(locale, "toggle_theme") %>">
+                                <a id="toggle_theme" href="/toggle_theme?referer=<%= env.get?("current_page") %>" class="pure-menu-heading" title="<%= I18n.translate(locale, "toggle_theme") %>">
                                     <% if dark_mode == "dark" %>
                                         <i class="icon ion-ios-sunny"></i>
                                     <% else %>
@@ -54,7 +54,7 @@
                                 </a>
                             </div>
                             <div class="pure-u-1-4">
-                                <a id="notification_ticker" title="<%= translate(locale, "Subscriptions") %>" href="/feed/subscriptions" class="pure-menu-heading">
+                                <a id="notification_ticker" title="<%= I18n.translate(locale, "Subscriptions") %>" href="/feed/subscriptions" class="pure-menu-heading">
                                     <% notification_count = env.get("user").as(Invidious::User).notifications.size %>
                                     <% if CONFIG.enable_user_notifications && notification_count > 0 %>
                                         <span id="notification_count"><%= notification_count %></span> <i class="icon ion-ios-notifications"></i>
@@ -64,7 +64,7 @@
                                 </a>
                             </div>
                             <div class="pure-u-1-4">
-                                <a title="<%= translate(locale, "Preferences") %>" href="/preferences?referer=<%= env.get?("current_page") %>" class="pure-menu-heading">
+                                <a title="<%= I18n.translate(locale, "Preferences") %>" href="/preferences?referer=<%= env.get?("current_page") %>" class="pure-menu-heading">
                                     <i class="icon ion-ios-cog"></i>
                                 </a>
                             </div>
@@ -77,13 +77,13 @@
                                 <form action="/signout?referer=<%= env.get?("current_page") %>" method="post">
                                     <input type="hidden" name="csrf_token" value="<%= HTML.escape(env.get?("csrf_token").try &.as(String) || "") %>">
                                     <a class="pure-menu-heading" href="#">
-                                        <input style="all:unset" type="submit" value="<%= translate(locale, "Log out") %>">
+                                        <input style="all:unset" type="submit" value="<%= I18n.translate(locale, "Log out") %>">
                                     </a>
                                 </form>
                             </div>
                         <% else %>
                             <div class="pure-u-1-3">
-                                <a id="toggle_theme" href="/toggle_theme?referer=<%= env.get?("current_page") %>" class="pure-menu-heading" title="<%= translate(locale, "toggle_theme") %>">
+                                <a id="toggle_theme" href="/toggle_theme?referer=<%= env.get?("current_page") %>" class="pure-menu-heading" title="<%= I18n.translate(locale, "toggle_theme") %>">
                                     <% if dark_mode == "dark" %>
                                         <i class="icon ion-ios-sunny"></i>
                                     <% else %>
@@ -92,14 +92,14 @@
                                 </a>
                             </div>
                             <div class="pure-u-1-3">
-                                <a title="<%= translate(locale, "Preferences") %>" href="/preferences?referer=<%= env.get?("current_page") %>" class="pure-menu-heading">
+                                <a title="<%= I18n.translate(locale, "Preferences") %>" href="/preferences?referer=<%= env.get?("current_page") %>" class="pure-menu-heading">
                                     <i class="icon ion-ios-cog"></i>
                                 </a>
                             </div>
                             <% if CONFIG.login_enabled %>
                                 <div class="pure-u-1-3">
                                     <a href="/login?referer=<%= env.get?("current_page") %>" class="pure-menu-heading">
-                                        <%= translate(locale, "Log in") %>
+                                        <%= I18n.translate(locale, "Log in") %>
                                     </a>
                                 </div>
                             <% end %>
@@ -117,7 +117,7 @@
                     companions = companion_status.companions
                 %>
                 <div class="h-box" style="margin-bottom: 10px;">
-                    <b><%= translate(locale, "companion_switch_backend") %></b>
+                    <b><%= I18n.translate(locale, "companion_switch_backend") %></b>
                     <% if domain %>
                         <% CONFIG.invidious_companion.each_with_index do | companion, index |
                         next if companion.community && !preferences.show_community_backends
@@ -164,7 +164,7 @@
 
                 <% if companion_switched %>
                     <div class="h-box">
-                        <p><%= translate(locale, "backend_unavailable") %></p>
+                        <p><%= I18n.translate(locale, "backend_unavailable") %></p>
                     </div>
                 <% end %>
 
@@ -184,8 +184,8 @@
         <script id="notification_data" type="application/json">
         <%=
         {
-            "upload_text" => HTML.escape(translate(locale, "`x` uploaded a video")),
-            "live_upload_text" => HTML.escape(translate(locale, "`x` is live"))
+            "upload_text" => HTML.escape(I18n.translate(locale, "`x` uploaded a video")),
+            "live_upload_text" => HTML.escape(I18n.translate(locale, "`x` is live"))
         }.to_pretty_json
         %>
         </script>
@@ -203,31 +203,31 @@
                     <% if CONFIG.footer %>
                         <p><%=CONFIG.footer%></p>
                     <% else %>
-                        <p><%=translate(locale, "default_invidious_footer_text")%></p>
+                        <p><%=I18n.translate(locale, "default_invidious_footer_text")%></p>
                     <% end %>
 
                 </div>
                 <div class="footer-section">
-                    <b class="footer-section-header"><%= translate(locale, "footer_navigation_section_header")%></b>
+                    <b class="footer-section-header"><%= I18n.translate(locale, "footer_navigation_section_header")%></b>
                     <ul class="pure-menu-list footer-section-list">
                         <li class="pure-menu-item footer-section-item">
-                            <a href="/" title="<%= translate(locale, "footer_home_link")%>">
-                                <%= translate(locale, "footer_home_link") %>
+                            <a href="/" title="<%= I18n.translate(locale, "footer_home_link")%>">
+                                <%= I18n.translate(locale, "footer_home_link") %>
                             </a>
                         </li>
                         <li class="pure-menu-item footer-section-item">
-                            <a href="/feed/popular" title="<%= translate(locale, "Popular")%>">
-                                <%= translate(locale, "Popular") %>
+                            <a href="/feed/popular" title="<%= I18n.translate(locale, "Popular")%>">
+                                <%= I18n.translate(locale, "Popular") %>
                             </a>
                         </li>
                         <li class="pure-menu-item footer-section-item">
-                            <a href="/feed/trending" title="<%= translate(locale, "Trending")%>" style="">
-                                <%= translate(locale, "Trending") %>
+                            <a href="/feed/trending" title="<%= I18n.translate(locale, "Trending")%>" style="">
+                                <%= I18n.translate(locale, "Trending") %>
                             </a>
                         </li>
                         <li class="pure-menu-item footer-section-item">
-                            <a href="/search" title="<%= translate(locale, "Search")%>">
-                                <%= translate(locale, "Search") %>
+                            <a href="/search" title="<%= I18n.translate(locale, "Search")%>">
+                                <%= I18n.translate(locale, "Search") %>
                             </a>
                         </li>
                     </ul>
@@ -236,33 +236,33 @@
                     <b class="footer-section-header">Invidious</b>
                     <ul class="pure-menu-list footer-section-list">
                         <li class="pure-menu-item footer-section-item">
-                            <a href="https://invidious.io" title="<%= translate(locale, "footer_project_website_link")%>">
-                                <%= translate(locale, "footer_project_website_link") %>
+                            <a href="https://invidious.io" title="<%= I18n.translate(locale, "footer_project_website_link")%>">
+                                <%= I18n.translate(locale, "footer_project_website_link") %>
                             </a>
                         </li>
                         <li class="pure-menu-item footer-section-item">
-                            <a href="https://github.com/iv-org/invidious" title="<%= translate(locale, "footer_source_code_link")%>">
-                                <%= translate(locale, "footer_source_code_link") %>
+                            <a href="https://github.com/iv-org/invidious" title="<%= I18n.translate(locale, "footer_source_code_link")%>">
+                                <%= I18n.translate(locale, "footer_source_code_link") %>
                             </a>
                         </li>
                         <li class="pure-menu-item footer-section-item">
-                            <a href="https://github.com/iv-org/invidious/issues" title="<%= translate(locale, "footer_issue_tracker_link")%>" style="">
-                                <%= translate(locale, "footer_issue_tracker_link") %>
+                            <a href="https://github.com/iv-org/invidious/issues" title="<%= I18n.translate(locale, "footer_issue_tracker_link")%>" style="">
+                                <%= I18n.translate(locale, "footer_issue_tracker_link") %>
                             </a>
                         </li>
                         <li class="pure-menu-item footer-section-item">
-                            <a href="https://instances.invidious.io" title="<%= translate(locale, "footer_public_instances_link")%>">
-                                <%= translate(locale, "footer_public_instances_link") %>
+                            <a href="https://instances.invidious.io" title="<%= I18n.translate(locale, "footer_public_instances_link")%>">
+                                <%= I18n.translate(locale, "footer_public_instances_link") %>
                             </a>
                         </li>
                         <li class="pure-menu-item footer-section-item">
-                            <a href="https://invidious.io/donate" title="<%= translate(locale, "footer_donate_link")%>">
-                                <%= translate(locale, "footer_donate_link") %>
+                            <a href="https://invidious.io/donate" title="<%= I18n.translate(locale, "footer_donate_link")%>">
+                                <%= I18n.translate(locale, "footer_donate_link") %>
                             </a>
                         </li>
                         <li class="pure-menu-item footer-section-item">
-                            <a href="https://matrix.to/#/#invidious:matrix.org" title="<%= translate(locale, "footer_matrix_link")%>">
-                                <%= translate(locale, "footer_matrix_link") %>
+                            <a href="https://matrix.to/#/#invidious:matrix.org" title="<%= I18n.translate(locale, "footer_matrix_link")%>">
+                                <%= I18n.translate(locale, "footer_matrix_link") %>
                             </a>
                         </li>
 
@@ -272,45 +272,45 @@
                     <div class="footer-section">
                         <b class="footer-section-header">
                             <% if CONFIG.modified_source_code_url %>
-                                <%= translate(locale, "footer_instance_section_header_modified_source")%>
+                                <%= I18n.translate(locale, "footer_instance_section_header_modified_source")%>
                             <% else %>
-                                <%= translate(locale, "footer_instance_section_header")%>
+                                <%= I18n.translate(locale, "footer_instance_section_header")%>
                             <% end %>
                         </b>
                         <ul class="pure-menu-list footer-section-list">
                             <% if CONFIG.instance_maintainer_email %>
                                 <li class="pure-menu-item footer-section-item">
-                                    <a href="<%=HTML.escape("mailto:#{CONFIG.instance_maintainer_email.not_nil!}")%>" title="<%= translate(locale, "footer_contact_link")%>">
-                                        <%= translate(locale, "footer_contact_link") %>
+                                    <a href="<%=HTML.escape("mailto:#{CONFIG.instance_maintainer_email.not_nil!}")%>" title="<%= I18n.translate(locale, "footer_contact_link")%>">
+                                        <%= I18n.translate(locale, "footer_contact_link") %>
                                     </a>
                                 </li>
                             <% end %>
                             <% if CONFIG.modified_source_code_url %>
                                 <li class="pure-menu-item footer-section-item">
-                                    <a href="<%=HTML.escape(CONFIG.modified_source_code_url.not_nil!)%>" title="<%= translate(locale, "footer_instance_section_modified_source_code")%>">
-                                        <%= translate(locale, "footer_instance_section_modified_source_code") %>
+                                    <a href="<%=HTML.escape(CONFIG.modified_source_code_url.not_nil!)%>" title="<%= I18n.translate(locale, "footer_instance_section_modified_source_code")%>">
+                                        <%= I18n.translate(locale, "footer_instance_section_modified_source_code") %>
                                     </a>
                                 </li>
                             <% end %>
                             <% if CONFIG.footer_instance_tos_link %>
                                 <li class="pure-menu-item footer-section-item">
-                                    <a href="<%=HTML.escape(CONFIG.footer_instance_tos_link.not_nil!)%>" title="<%= translate(locale, "footer_instance_section_tos")%>">
-                                        <%= translate(locale, "footer_instance_section_tos") %>
+                                    <a href="<%=HTML.escape(CONFIG.footer_instance_tos_link.not_nil!)%>" title="<%= I18n.translate(locale, "footer_instance_section_tos")%>">
+                                        <%= I18n.translate(locale, "footer_instance_section_tos") %>
                                     </a>
                                 </li>
                             <% end %>
                             <% if CONFIG.footer_instance_privacy_policy_link %>
                                 <li class="pure-menu-item footer-section-item">
-                                    <a href="<%=HTML.escape(CONFIG.footer_instance_privacy_policy_link.not_nil!)%>" title="<%= translate(locale, "footer_instance_section_privacy_policy")%>">
-                                        <%= translate(locale, "footer_instance_section_privacy_policy") %>
+                                    <a href="<%=HTML.escape(CONFIG.footer_instance_privacy_policy_link.not_nil!)%>" title="<%= I18n.translate(locale, "footer_instance_section_privacy_policy")%>">
+                                        <%= I18n.translate(locale, "footer_instance_section_privacy_policy") %>
                                     </a>
                                 </li>
                             <% end %>
 
                             <% if CONFIG.footer_instance_donate_link %>
                                 <li class="pure-menu-item footer-section-item">
-                                    <a href="<%=HTML.escape(CONFIG.footer_instance_donate_link.not_nil!)%>" title="<%= translate(locale, "footer_instance_section_donate")%>">
-                                        <%= translate(locale, "footer_instance_section_donate") %>
+                                    <a href="<%=HTML.escape(CONFIG.footer_instance_donate_link.not_nil!)%>" title="<%= I18n.translate(locale, "footer_instance_section_donate")%>">
+                                        <%= I18n.translate(locale, "footer_instance_section_donate") %>
                                     </a>
                                 </li>
                             <% end %>
@@ -327,16 +327,16 @@
                 <% end %>
 
                 <div class="footer-section">
-                    <b class="footer-section-header"><%= translate(locale, "footer_support_section_header")%></b>
+                    <b class="footer-section-header"><%= I18n.translate(locale, "footer_support_section_header")%></b>
                     <ul class="pure-menu-list footer-section-list">
                         <li class="pure-menu-item footer-section-item">
-                            <a href="https://git.nadeko.net/Fijxu/invidious/issues/new?template=.github%2fISSUE_TEMPLATE%2fbug_report.md" title="<%= translate(locale, "footer_report_bug_link")%>">
-                                <%= translate(locale, "footer_report_bug_link") %>
+                            <a href="https://git.nadeko.net/Fijxu/invidious/issues/new?template=.github%2fISSUE_TEMPLATE%2fbug_report.md" title="<%= I18n.translate(locale, "footer_report_bug_link")%>">
+                                <%= I18n.translate(locale, "footer_report_bug_link") %>
                             </a>
                         </li>
                         <li class="pure-menu-item footer-section-item">
-                            <a href="#" title="<%= translate(locale, "footer_faq_link")%>" style="">
-                                <%= translate(locale, "footer_faq_link") %>
+                            <a href="#" title="<%= I18n.translate(locale, "footer_faq_link")%>" style="">
+                                <%= I18n.translate(locale, "footer_faq_link") %>
                             </a>
                         </li>
                     </ul>
@@ -352,9 +352,9 @@
                     <div class="box">You are currently using Backend: <%= current_backend ? companion_public_url : "Unable to get backend, this is bug, please report it!" %></div>
                     <% end %>
                     <% if CONFIG.modified_source_code_url %>
-                        <%= translate(locale, "footer_current_version_modified") %>
+                        <%= I18n.translate(locale, "footer_current_version_modified") %>
                     <% else %>
-                        <%= translate(locale, "Current version: ") %>
+                        <%= I18n.translate(locale, "Current version: ") %>
                     <% end %>
                     <% if CONFIG.modified_source_code_url %>
                         <a href="<%= CONFIG.modified_source_code_url %>/commit/<%= CURRENT_COMMIT %>"><%= CURRENT_VERSION %>-<%= CURRENT_COMMIT %></a>
@@ -373,9 +373,9 @@
                     <% end %>
                 </span>
                 <div class="right">
-                    <a href="/privacy" title="<%= translate(locale, "footer_privacy_policy_link")%>"><%= translate(locale, "footer_privacy_policy_link") %></a>
+                    <a href="/privacy" title="<%= I18n.translate(locale, "footer_privacy_policy_link")%>"><%= I18n.translate(locale, "footer_privacy_policy_link") %></a>
                     <span> | </span>
-                    <a href="/licenses" rel="jslicense" title="<%= translate(locale, "footer_licences_link")%>"><%= translate(locale, "footer_licences_link") %></a>
+                    <a href="/licenses" rel="jslicense" title="<%= I18n.translate(locale, "footer_licences_link")%>"><%= I18n.translate(locale, "footer_licences_link") %></a>
                 </div>
             </div>
         </div>
