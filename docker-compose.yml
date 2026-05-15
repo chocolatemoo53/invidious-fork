@@ -20,7 +20,7 @@ x-common-haproxy: &common-haproxy
     - ./docker/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
 
 x-common-valkey: &common-valkey
-    image: valkey/valkey:7.2-alpine
+    image: valkey/valkey:9.1-alpine
     hostname: valkey
     restart: unless-stopped
     volumes:
