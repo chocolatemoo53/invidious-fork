@@ -42,7 +42,7 @@ jobs:
             type=sha,format=short,prefix={{date 'YYYY.MM.DD'}}-,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
 
-      - uses: https://code.forgejo.org/docker/build-push-action@v6
+      - uses: https://code.forgejo.org/docker/build-push-action@v7
         name: Build images
         with:
           context: .
