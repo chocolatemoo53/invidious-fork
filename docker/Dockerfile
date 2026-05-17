@@ -1,4 +1,24 @@
-FROM git.nadeko.net/fijxu/84codes-crystal-openssl:1.20.1 AS dependabot-crystal
+# https://github.com/openssl/openssl/releases/tag/openssl-3.6.2
+ARG OPENSSL_VERSION='3.6.2'
+ARG OPENSSL_SHA256='aaf51a1fe064384f811daeaeb4ec4dce7340ec8bd893027eee676af31e83a04f'
+
+FROM crystallang/crystal:1.20.2-alpine AS dependabot-crystal
+
+# We compile openssl ourselves due to a memory leak in how crystal interacts
+# with openssl
+# Reference: https://github.com/iv-org/invidious/issues/1438#issuecomment-3087636228
+FROM dependabot-crystal AS openssl-builder
+RUN apk add --no-cache curl perl linux-headers
+
+WORKDIR /
+
+ARG OPENSSL_VERSION
+ARG OPENSSL_SHA256
+RUN curl -Ls "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz" --output openssl-${OPENSSL_VERSION}.tar.gz
+RUN echo "${OPENSSL_SHA256}  openssl-${OPENSSL_VERSION}.tar.gz" | sha256sum -c
+RUN tar -xzvf openssl-${OPENSSL_VERSION}.tar.gz
+
+RUN cd openssl-${OPENSSL_VERSION} && ./Configure --openssldir=/etc/ssl && make -j$(nproc)
 
 FROM dependabot-crystal AS builder
 
