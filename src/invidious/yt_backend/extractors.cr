@@ -662,11 +662,18 @@ private module Parsers
         metadata = item_contents.dig("metadata", "lockupMetadataViewModel")
         title = metadata.dig("title", "content").as_s
         # Contains the views of the video and the published time of the video.
-        metadata_parts = metadata.dig("metadata", "contentMetadataViewModel", "metadataRows", 0, "metadataParts")
+        metadata_parts = metadata.dig("metadata", "contentMetadataViewModel", "metadataRows", 0, "metadataParts").try &.as_a
 
-        view_count_text = metadata_parts.dig(0, "text", "content").as_s
+        view_count_text = metadata_parts.try &.find { |item| item["icon"]?.nil? && item.dig?("text", "content").try &.as_s.includes?("views") }
+          .try &.dig("text", "content").as_s
+        published = metadata_parts.try &.find { |item| item["icon"]?.nil? && item.dig?("text", "content").try &.as_s.includes?("ago") }
+          .try { |item| decode_date(item.dig("text", "content").as_s) } || Time.local
+
         view_count = short_text_to_number(view_count_text || "0")
-        published = metadata_parts.dig?(1, "text", "content").try { |t| decode_date(t.as_s) } || Time.local
+
+        length = thumbnail_view_model.dig("overlays", 0, "thumbnailBottomOverlayViewModel", "badges", 0, "thumbnailBadgeViewModel", "text").try &.as_s
+
+        length_seconds = decode_length_seconds(length) if length
 
         return SearchVideo.new({
           title:              title,
@@ -676,15 +683,17 @@ private module Parsers
           published:          published,
           views:              view_count,
           description_html:   "",
-          length_seconds:     0,
+          length_seconds:     length_seconds || 0,
           premiere_timestamp: Time.unix(0),
           author_verified:    false,
           author_thumbnail:   nil,
           badges:             VideoBadges::None,
         })
-      elsif content_type == "LOCKUP_CONTENT_TYPE_PODCAST"
-        # TODO
-      else # If it's a podcast, it's content_type would be "LOCKUP_CONTENT_TYPE_PODCAST"
+        # If it's a playlist, it's content_type would be "LOCKUP_CONTENT_TYPE_PLAYLIST"
+        # If it's a podcast, it's content_type would be "LOCKUP_CONTENT_TYPE_PODCAST"
+        # Playlist and Podcasts structures are quite similar, so we can use the same logic
+        # we use to parse Playlists data, for Podcasts.
+      else
         thumbnail_view_model = item_contents.dig(
           "contentImage", "collectionThumbnailViewModel",
           "primaryThumbnail", "thumbnailViewModel"
@@ -694,16 +703,36 @@ private module Parsers
         playlist_id = item_contents["contentId"].as_s
 
         # This complicated sequences tries to extract the following data structure:
-        # "overlays": [{
-        #   "thumbnailOverlayBadgeViewModel": {
-        #     "thumbnailBadges": [{
-        #       "thumbnailBadgeViewModel": {
-        #         "text": "430 episodes",
-        #         "badgeStyle": "THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT"
-        #       }
-        #     }]
-        #   }
-        # }]
+        #
+        # "overlays": [
+        #   {
+        #     "thumbnailOverlayBadgeViewModel": {
+        #       "thumbnailBadges": [
+        #         {
+        #           "thumbnailBadgeViewModel": {
+        #             "icon": {
+        #               "sources": [
+        #                 {
+        #                   "clientResource": {
+        #                     "imageName": "BROADCAST"
+        #                   }
+        #                 }
+        #               ]
+        #             },
+        #             "text": "5 episodes",
+        #             "badgeStyle": "THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT",
+        #             "backgroundColor": {
+        #               "lightTheme": 991526,
+        #               "darkTheme": 991526
+        #             }
+        #           }
+        #         }
+        #       ],
+        #       "position": "THUMBNAIL_OVERLAY_BADGE_POSITION_BOTTOM_END"
+        #     }
+        #   },
+        #   ... <-- There is another item bellow the Object we use to extract episodes/videos
+        # ]
         #
         # NOTE: this simplistic `.to_i` conversion might not work on larger
         # playlists and hasn't been tested.
@@ -718,15 +747,65 @@ private module Parsers
         metadata = item_contents.dig("metadata", "lockupMetadataViewModel")
         title = metadata.dig("title", "content").as_s
 
-        metadata_parts = metadata.dig("metadata", "contentMetadataViewModel", "metadataRows", 0, "metadataParts", 0)
+        # metadataParts is not always in the first place of the metadataRows array, therefore,
+        # we search for it iterating the array. We have only seen metadataRows with at least
+        # 2 items inside it.
+        #
+        # It looks like this:
+        # "metadataRows": [
+        #     {}, <-- empty Object
+        #     {
+        #       "metadataParts": [ ... ] <-- metadataParts with the information we are searching for.
+        #     }
+        # ]
+        #
+        # Playlist on channels also contain metadataRows, but not with the type of data we are searching
+        # for which are the channel name and channel ID, instead they have two fields depending of the playlist
+        # updated date:
+        #
+        # It looks like this:
+        # "metadataRows": [
+        #     {
+        #         "metadataParts": [
+        #             {
+        #                 "text": {
+        #                     "content": "Updated 4 days ago"
+        #                 }
+        #             } <-- This object is missing if the playlist has not been updated in around 7
+        #                   days
+        #         ]
+        #     },
+        #     {
+        #         "metadataParts": [
+        #             {
+        #                 "text": {
+        #                     "content": "View full playlist",
+        #                     "commandRuns": [ ... ],
+        #                     "styleRuns": [ ... ].
+        #                 }
+        #             } <-- This object is always present, so we use this to determine if the
+        #                   metadataParts can be used or not.
+        #         ]
+        #     }
+        # ]
+        #
+        metadata_rows = metadata.dig?("metadata", "contentMetadataViewModel", "metadataRows").try &.as_a
+        metadata_parts = metadata_rows.try &.find { |row|
+          parts = row["metadataParts"]?.try &.as_a
+          parts && !parts.any? { |item| item.dig?("text", "content").try &.as_s == "View full playlist" }
+        }.try &.["metadataParts"].as_a
 
-        if author_info = metadata_parts["text"]?
+        if author_info = metadata_parts.try &.find(&.dig?("text", "commandRuns"))
+             .try &.["text"]
           author = author_info["content"].as_s
           author_id = author_info.dig?("commandRuns", 0, "onTap", "innertubeCommand", "browseEndpoint", "browseId")
             .try &.as_s || author_fallback.id
+          author_verified = (author_info.dig?("attachmentRuns", 0, "element", "type", "imageType", "image", "sources", 0, "clientResource", "imageName")
+            .try &.as_s) == "CHECK_CIRCLE_FILLED" || false
         else
           author = author_fallback.name
           author_id = author_fallback.id
+          author_verified = false
         end
 
         # TODO: Retrieve "updated" info from metadata parts
@@ -746,7 +825,7 @@ private module Parsers
           video_count:     video_count || -1,
           videos:          [] of SearchPlaylistVideo,
           thumbnail:       thumbnail,
-          author_verified: false,
+          author_verified: author_verified,
         })
       end
     end
