@@ -146,6 +146,10 @@ module Invidious::Routes::PreferencesRoute
 
     default_playlist = env.params.body["default_playlist"]?.try &.as(String)
 
+    search_privacy = env.params.body["search_privacy"]?.try &.as(String)
+    search_privacy ||= "off"
+    search_privacy = search_privacy == "on"
+
     hidden_channels = env.params.body["hidden_channels"]?.try &.as(String)
     if hidden_channels
       hidden_channels = hidden_channels.split("\n")
@@ -178,10 +182,6 @@ module Invidious::Routes::PreferencesRoute
     show_community_backends = show_community_backends == "on"
 
     current_companion = preferences.current_companion
-
-    search_privacy = env.params.body["search_privacy"]?.try &.as(String)
-    search_privacy ||= "off"
-    search_privacy = search_privacy == "on"
 
     # Convert to JSON and back again to take advantage of converters used for compatibility
     preferences = Preferences.from_json({
@@ -220,11 +220,11 @@ module Invidious::Routes::PreferencesRoute
       show_nick:                   show_nick,
       save_player_pos:             save_player_pos,
       default_playlist:            default_playlist,
+      search_privacy:              search_privacy,
       hidden_channels:             hidden_channels,
       default_trending_type:       default_trending_type,
       show_community_backends:     show_community_backends,
       current_companion:           current_companion,
-      search_privacy:              search_privacy,
     }.to_json)
 
     if user = env.get? "user"

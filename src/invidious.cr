@@ -70,7 +70,7 @@ rescue ex
 end
 
 HOST_URL           = make_host_url(Kemal.config)
-PUBSUB_HOST_URL = CONFIG.pubsub_domain
+PUBSUB_HOST_URL    = CONFIG.pubsub_domain
 MAX_ITEMS_PER_PAGE = 1500
 
 CURRENT_BRANCH  = {{ "#{`git branch | sed -n '/* /s///p'`.strip}" }}
