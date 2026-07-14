@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: https://code.forgejo.org/actions/checkout@v6
+      - uses: https://code.forgejo.org/actions/checkout@v7
 
       - uses: https://code.forgejo.org/docker/setup-buildx-action@v4
         name: Setup Docker BuildX system
