@@ -309,6 +309,9 @@ class Config
     property max_goal_buffer_length : Int32? = 60
   end
 
+  # Disable easy to abuse API endpoints
+  property disable_abusable_api : Bool = false
+
   def disabled?(option)
     case disabled = CONFIG.disable_proxy
     when Bool

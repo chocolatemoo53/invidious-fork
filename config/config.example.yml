@@ -310,7 +310,6 @@ https_only: false
 ##
 #max_request_line_size: 16384
 
-
 # -----------------------------
 #  Network (outbound)
 # -----------------------------
@@ -332,7 +331,6 @@ https_only: false
 ## Default: 100
 ##
 #pool_size: 100
-
 
 ##
 ## Additional cookies to be sent when requesting the youtube API.
@@ -367,7 +365,6 @@ https_only: false
 #  password:
 #  host:
 #  port:
-
 
 ##
 ## Use Innertube's transcripts API instead of timedtext for closed captions
@@ -448,7 +445,6 @@ https_only: false
 ## Default: false
 ##
 #statistics_enabled: false
-
 
 # -----------------------------
 #  Users and accounts
@@ -561,12 +557,25 @@ full_refresh: false
 ##
 feed_threads: 1
 
+##
+## Setting to disable easy to abuse API endpoints that can
+## be spammed and therefore blocking your Invidious instance.
+##
+## Useful for public instance maintainers.
+##
+## Notes: The following API endpoints will be disabled:
+##  - /api/v1/videos
+##  - /api/v1/clips
+##  - /api/v1/transcripts
+##
+## Accepted values: true, false
+## Default: false
+##
+disable_abusable_api: false
 
 jobs:
-
   ## Options for the database cleaning job
   clear_expired_items:
-
     ## Enable/Disable job
     ##
     ## Accepted values: true, false
@@ -576,7 +585,6 @@ jobs:
 
   ## Options for the channels updater job
   refresh_channels:
-
     ## Enable/Disable job
     ##
     ## Accepted values: true, false
@@ -586,7 +594,6 @@ jobs:
 
   ## Options for the RSS feeds updater job
   refresh_feeds:
-
     ## Enable/Disable job
     ##
     ## Accepted values: true, false
@@ -612,7 +619,7 @@ jobs:
 ## used for instance announcements, e.g
 ##
 ## When unset Invidious defaults to some text that describes what Invidious is. See
-## localization key default_invidious_footer_text 
+## localization key default_invidious_footer_text
 ##
 ## Accepted values: any string. HTML is accepted.
 ## Default: <none>
@@ -629,7 +636,7 @@ jobs:
 #modified_source_code_url: ""
 
 ##
-## Email to contact the instance maintainer; used in a mailto: link within the footer. 
+## Email to contact the instance maintainer; used in a mailto: link within the footer.
 ##
 ## Accepted values: string
 ## Default: <none>
@@ -856,7 +863,6 @@ default_user_preferences:
   ##
   #captions: ["", "", ""]
 
-
   # -----------------------------
   #  Interface
   # -----------------------------
@@ -958,7 +964,6 @@ default_user_preferences:
   ##
   #related_videos: true
 
-
   # -----------------------------
   #  Video player behavior
   # -----------------------------
@@ -1021,7 +1026,6 @@ default_user_preferences:
   ## Default: false
   ##
   #video_loop: false
-
 
   # -----------------------------
   #  Video playback settings
@@ -1133,7 +1137,6 @@ default_user_preferences:
   ## Default: published
   ##
   #sort: published
-
 
   # -----------------------------
   #  Miscellaneous
