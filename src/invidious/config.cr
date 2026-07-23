@@ -312,6 +312,8 @@ class Config
   # Disable easy to abuse API endpoints
   property disable_abusable_api : Bool = false
 
+  property cpu_threads : Int32 = 1
+
   def disabled?(option)
     case disabled = CONFIG.disable_proxy
     when Bool

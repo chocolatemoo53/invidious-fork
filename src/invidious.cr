@@ -138,6 +138,8 @@ if CONFIG.output.upcase != "STDOUT"
 end
 OUTPUT = CONFIG.output.upcase == "STDOUT" ? STDOUT : File.open(CONFIG.output, mode: "a")
 LOGGER = Invidious::LogHandler.new(OUTPUT, CONFIG.log_level, CONFIG.colorize_logs)
+LOGGER.debug("CPU Threads: #{CONFIG.cpu_threads}")
+Fiber::ExecutionContext.default.resize(CONFIG.cpu_threads)
 
 # Check table integrity
 Invidious::Database.check_integrity(CONFIG)

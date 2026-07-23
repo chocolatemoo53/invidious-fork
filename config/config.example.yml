@@ -1388,3 +1388,13 @@ videojs:
     ## Default: 60
     ##
     max_goal_buffer_length: 60
+
+## Change how many threads should Invidious use to make
+## use of other CPU cores.
+## Example: If your CPU has 4 cores, you can set cpu_threads
+## to 4 to make use of the 4 cores.
+##
+## Accepted values: a positive integer
+## Default: 1
+##
+cpu_threads: 1
