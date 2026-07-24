@@ -15,10 +15,10 @@ description: |
 dependencies:
   pg:
     github: will/crystal-pg
-    version: ~> 0.28.0
+    version: ~> 0.30.0
   sqlite3:
     github: crystal-lang/crystal-sqlite3
-    version: ~> 0.21.0
+    version: ~> 0.23.0
   kemal:
     github: kemalcr/kemal
     version: ~> 1.9.0
