@@ -30,11 +30,13 @@ dependencies:
     version: ~> 0.1.1
   redis:
     github: jgaskins/redis
+    version: ~> 0.15.3
   http_proxy:
     github: mamantoha/http_proxy
     version: ~> 0.10.3
   lru:
     github: fijxu/crystal-lru
+    version: ~> 1.0.5
 
 development_dependencies:
   spectator:
