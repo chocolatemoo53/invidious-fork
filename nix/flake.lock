@@ -34,10 +34,27 @@
         "type": "github"
       }
     },
+    "nixpkgs-fijxu": {
+      "locked": {
+        "lastModified": 1785624089,
+        "narHash": "sha256-e5VKw6LQvfMrWzEqqWQLN/OoBZ29C4tJy3+RNIOZDN8=",
+        "owner": "fijxu",
+        "repo": "nixpkgs",
+        "rev": "6b21cd7c292d29950c901735f1b451b5a7053123",
+        "type": "github"
+      },
+      "original": {
+        "owner": "fijxu",
+        "ref": "crystal_1_20_crystal_1_21",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "nixpkgs-fijxu": "nixpkgs-fijxu"
       }
     },
     "systems": {
