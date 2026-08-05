@@ -64,6 +64,8 @@ we're going to need to do it here in order to allow for translations.
     "play_next" => !video.related_videos.empty? && !plid && params.continue,
     "next_video" => video.related_videos.select { |rv| rv["id"]? }[0]?.try &.["id"],
     "youtube_comments_text" => HTML.escape(I18n.translate(locale, "View YouTube comments")),
+    "comments_youtube_disabled_text" => HTML.escape(I18n.translate(locale, "comments_youtube_disabled_text")),
+    "comments_youtube_disabled_try_reddit" => HTML.escape(I18n.translate(locale, "comments_youtube_disabled_try_reddit")),
     "reddit_comments_text" => HTML.escape(I18n.translate(locale, "View Reddit comments")),
     "reddit_permalink_text" => HTML.escape(I18n.translate(locale, "View more comments on Reddit")),
     "comments_youtube_disabled_text" => HTML.escape(I18n.translate(locale, "comments_youtube_disabled_text")),

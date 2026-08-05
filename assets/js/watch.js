@@ -197,6 +197,8 @@ addEventListener('load', function (e) {
     }
 });
 
+document.getElementById("try-reddit-comments-link").onclick = swap_comments;
+
 addEventListener("DOMContentLoaded", () => {
     const transcriptLines = document.getElementById("lines");
     for (const transcriptLine of transcriptLines.children) {

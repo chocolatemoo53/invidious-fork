@@ -16,7 +16,7 @@ struct YoutubeConnectionPool
   def client(env : HTTP::Server::Context? = nil, headers_to_duplicate : Array(String)? = nil, &)
     conn = pool.checkout
     # Proxy needs to be reinstated every time we get a client from the pool
-    conn.proxy = make_configured_http_proxy_client() if CONFIG.http_proxy
+    configure_proxy(conn) if CONFIG.http_proxy
 
     begin
       response = yield conn
@@ -134,7 +134,7 @@ end
 
 def make_client(url : URI, region = nil, force_resolve : Bool = false, force_youtube_headers : Bool = false, use_http_proxy : Bool = true)
   client = HTTP::Client.new(url)
-  client.proxy = make_configured_http_proxy_client() if CONFIG.http_proxy && use_http_proxy
+  configure_proxy(client) if CONFIG.http_proxy && use_http_proxy
 
   # Force the usage of a specific configured IP Family
   if force_resolve
@@ -155,6 +155,26 @@ def make_client(url : URI, region = nil, force_resolve : Bool = false, use_http_
     yield client
   ensure
     client.close
+  end
+end
+
+# Attaches the configured outbound proxy (HTTP CONNECT or SOCKS5) to a client.
+# Only called when an outbound proxy is configured.
+def configure_proxy(client : HTTP::Client) : Nil
+  config_proxy = CONFIG.http_proxy.not_nil!
+
+  case config_proxy.type.downcase
+  when "http"
+    client.proxy = make_configured_http_proxy_client
+  when "socks5", "socks5h"
+    client.socks_proxy = SOCKS5::ProxyClient.new(
+      config_proxy.host,
+      config_proxy.port,
+      username: config_proxy.user,
+      password: config_proxy.password,
+    )
+  else
+    raise %(Invalid http_proxy.type #{config_proxy.type.inspect} (expected "http", "socks5", or "socks5h"))
   end
 end
 

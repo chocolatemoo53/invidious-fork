@@ -1006,10 +1006,6 @@ h1, h2, h3, h4, h5, p,
   background: rgba(0, 0, 0, 0.12345);
 }
 
-#comments-turned-off-on-video-message > p, #comments-disabled-message > p {
-  text-align: center;
-}
-
 .description-widget {
   display: flex;
   white-space: normal;
@@ -1097,4 +1093,8 @@ h1, h2, h3, h4, h5, p,
   padding-left: 10px;
   display: inline-block;
   vertical-align: top;
+}
+
+#comments-turned-off-on-video-message > p, #comments-disabled-message > p {
+  text-align: center;
 }
