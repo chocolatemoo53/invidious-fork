@@ -20,6 +20,10 @@ shards:
     git: https://github.com/crystal-loot/exception_page.git
     version: 0.5.0
 
+  gcry:
+    git: https://github.com/sdogruyol/gcry.git
+    version: 0.18.0+git.commit.f027c06f52f501d3b65e4d61e8c0f1b909086479
+
   http_proxy:
     git: https://github.com/mamantoha/http_proxy.git
     version: 0.10.3

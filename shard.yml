@@ -37,6 +37,9 @@ dependencies:
   lru:
     github: fijxu/crystal-lru
     version: ~> 1.0.5
+  gcry:
+    github: sdogruyol/gcry
+    branch: master
 
 development_dependencies:
   spectator:

@@ -51,6 +51,10 @@ require "./invidious/routes/**"
 require "./invidious/jobs/base_job"
 require "./invidious/jobs/*"
 
+{% if flag?(:gc_none) %}
+  require "gcry"
+{% end %}
+
 # Declare the base namespace for invidious
 module Invidious
 end
