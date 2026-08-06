@@ -5,7 +5,7 @@ const CONFIG = JSON.parse(document.getElementById('config').textContent);
 
 var options = {
     liveui: true,
-    playbackRates: [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0],
+    playbackRates: [0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 4.0],
     fontPercent: [0.5, 0.75, 1.25, 1.5, 1.75, 2, 3, 4],
     windowOpacity: ['0', '0.5', '1'],
     textOpacity: ['0.5', '1'],
@@ -232,7 +232,7 @@ if (isMobile()) {
     const ControlBar = videojs.getComponent('controlBar');
     let operations_bar = new ControlBar(player, {
       children: [],
-      playbackRates: [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+      playbackRates: [0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 4.0]
     });
     buttons.slice(1).forEach(function (child) {operations_bar.addChild(child);});
 
