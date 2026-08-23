@@ -39,7 +39,7 @@ dependencies:
     version: ~> 1.0.5
   gcry:
     github: sdogruyol/gcry
-    branch: master
+    version: ~> 0.20.0
 
 development_dependencies:
   spectator:
