@@ -22,7 +22,7 @@ shards:
 
   gcry:
     git: https://github.com/sdogruyol/gcry.git
-    version: 0.20.0
+    version: 0.21.3
 
   http_proxy:
     git: https://github.com/mamantoha/http_proxy.git
