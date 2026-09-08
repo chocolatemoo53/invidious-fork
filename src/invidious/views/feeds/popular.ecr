@@ -13,13 +13,8 @@
 
 <div class="pure-g">
 <% popular_videos.each do |item| %>
-    <%
-        if hidden_channels = preferences.hidden_channels
-           next if hidden_channels.any? { |ucid| ucid == item.ucid }
-        end
-    %>
     <%= rendered "components/item" %>
 <% end %>
 </div>
 
-<script src="/<%= JS_PATH %>/watched_indicator.js"></script>
+<script src="/js/watched_indicator.js"></script>

@@ -207,8 +207,7 @@ module Invidious::Routes::Embed
     end
 
     if CONFIG.invidious_companion.present?
-      current_companion = env.get("current_companion").as(Int32)
-      invidious_companion = CONFIG.invidious_companion[current_companion]
+      invidious_companion = CONFIG.invidious_companion.sample
     end
 
     rendered "embed"

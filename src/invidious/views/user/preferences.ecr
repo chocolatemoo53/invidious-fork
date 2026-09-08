@@ -34,10 +34,7 @@
 
             <div class="pure-control-group">
                 <label for="local"><%= I18n.translate(locale, "preferences_local_label") %></label>
-                <input name="local" id="local" type="checkbox" <% if CONFIG.force_local %>disabled="" <% end %><% if preferences.local && !CONFIG.disabled?("local") %>checked<% end %> <% if CONFIG.disabled?("local") %>disabled<% end %>>
-                <% if CONFIG.force_local %>
-                    <label for="local">(All videos are proxied by default)</label>
-                <% end %>
+                <input name="local" id="local" type="checkbox" <% if preferences.local && !CONFIG.disabled?("local") %>checked<% end %> <% if CONFIG.disabled?("local") %>disabled<% end %>>
             </div>
 
             <div class="pure-control-group">
@@ -71,6 +68,17 @@
                     <select name="quality_dash" id="quality_dash">
                         <% {"auto", "best", "4320p", "2160p", "1440p", "1080p", "720p", "480p", "360p", "240p", "144p", "worst"}.each do |option| %>
                             <option value="<%= option %>" <% if preferences.quality_dash == option %> selected <% end %>><%= I18n.translate(locale, "preferences_quality_dash_option_" + option) %></option>
+                        <% end %>
+                    </select>
+                </div>
+            <% end %>
+
+            <% if !CONFIG.disabled?("dash") %>
+                <div class="pure-control-group">
+                    <label for="codec_dash"><%= I18n.translate(locale, "preferences_codec_dash_label") %></label>
+                    <select name="codec_dash" id="codec_dash">
+                        <% {"av1", "h264"}.each do |option| %>
+                            <option value="<%= option %>" <% if preferences.codec_dash == option %> selected <% end %>><%= I18n.translate(locale, "preferences_codec_dash_option_" + option) %></option>
                         <% end %>
                     </select>
                 </div>
@@ -186,7 +194,7 @@
             </div>
 
             <% if env.get?("user") %>
-                <% feed_options = {"", "Popular", "Trending", "Subscriptions", "Playlists", "History"} %>
+                <% feed_options = {"", "Popular", "Trending", "Subscriptions", "Playlists"} %>
             <% else %>
                 <% feed_options = {"", "Popular", "Trending"} %>
             <% end %>
@@ -217,17 +225,6 @@
                 </div>
             <% end %>
 
-            <div class="pure-control-group">
-                <label for="default_trending_type"><%= I18n.translate(locale, "preferences_default_trending_type") %></label>
-                <select name="default_trending_type" id="default_trending_type">
-                    <% Invidious::Routes::Feeds::TrendingTypes.each do |option|
-                        option = option.to_s
-                    %>
-                        <option value="<%= option %>" <% if preferences.default_trending_type.to_s == option %> selected <% end %>><%= I18n.translate(locale, option) %></option>
-                    <% end %>
-                </select>
-            </div>
-
             <legend><%= I18n.translate(locale, "preferences_category_misc") %></legend>
 
             <div class="pure-control-group">
@@ -236,22 +233,9 @@
             </div>
 
             <div class="pure-control-group">
-                <label for="show_community_backends"><%= I18n.translate(locale, "preferences_show_community_backends_label") %></label>
-                <input name="show_community_backends" id="show_community_backends" type="checkbox" <% if preferences.show_community_backends %>checked<% end %>>
-                <span class="preference-description"><%= I18n.translate(locale, "preferences_show_community_backends_description") %></span>
-            </div>
-
-            <div class="pure-control-group">
                 <label for="search_privacy"><%= I18n.translate(locale, "preferences_search_privacy_label") %></label>
                 <input name="search_privacy" id="search_privacy" type="checkbox" <% if preferences.search_privacy %>checked<% end %>>
                 <span class="preference-description"><%= I18n.translate(locale, "preferences_search_privacy_description") %></span>
-            </div>
-
-            <div class="pure-control-group">
-                <label for="hidden_channels"><%= I18n.translate(locale, "preferences_hidden_channels") %></label>
-                <% hidden_channels = preferences.hidden_channels %>
-                <textarea name="hidden_channels" id="hidden_channels" class="hidden-channels"><%= hidden_channels[0...].join("\n") if hidden_channels %></textarea>
-                <label for="hidden_channels"><%= I18n.translate(locale, "preferences_hidden_channels_label") %></label>
             </div>
 
             <% if env.get? "user" %>
@@ -377,10 +361,6 @@
                 </div>
 
                 <div class="pure-control-group">
-                    <a href="/change_username?referer=<%= URI.encode_www_form(referer) %>"><%= I18n.translate(locale, "change_username") %></a>
-                </div>
-
-                <div class="pure-control-group">
                     <a href="/data_control?referer=<%= URI.encode_www_form(referer) %>"><%= I18n.translate(locale, "Import/export data") %></a>
                 </div>
 
@@ -411,5 +391,3 @@
         </fieldset>
     </form>
 </div>
-
-<div id="footer_buffer"></div>

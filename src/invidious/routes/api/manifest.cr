@@ -9,8 +9,8 @@ module Invidious::Routes::API::Manifest
     region = env.params.query["region"]?
 
     if CONFIG.invidious_companion.present?
-      companion_public_url = env.get("companion_companion_public_url").as(String)
-      return env.redirect "#{companion_public_url}/api/manifest/dash/id/#{id}?#{env.params.query}"
+      invidious_companion = CONFIG.invidious_companion.sample
+      return env.redirect "#{invidious_companion.public_url}/api/manifest/dash/id/#{id}?#{env.params.query}"
     end
 
     # Since some implementations create playlists based on resolution regardless of different codecs,
@@ -53,13 +53,6 @@ module Invidious::Routes::API::Manifest
     audio_streams = video.audio_streams.sort_by { |stream| {stream["bitrate"].as_i} }.reverse!
     video_streams = video.video_streams.sort_by { |stream| {stream["width"].as_i, stream["fps"].as_i} }.reverse!
 
-    # Removes all the resolutions with a height higher than CONFIG.max_dash_resolution
-    if CONFIG.max_dash_resolution
-      video_streams.reject! do |z|
-        (z["height"].as_i > CONFIG.max_dash_resolution.not_nil!) if z["height"]?
-      end
-    end
-
     manifest = XML.build(indent: "  ", encoding: "UTF-8") do |xml|
       xml.element("MPD", "xmlns": "urn:mpeg:dash:schema:mpd:2011",
         "profiles": "urn:mpeg:dash:profile:full:2011", minBufferTime: "PT1.5S", type: "static",
@@ -93,7 +86,7 @@ module Invidious::Routes::API::Manifest
 
                 xml.element("Role", schemeIdUri: "urn:mpeg:dash:role:2011", value: is_default ? "main" : "alternate")
 
-                xml.element("Representation", id: fmt["itag"], codecs: codecs, bandwidth: bandwidth) do
+                xml.element("Representation", id: fmt["itag"].as_i + rand(100), codecs: codecs, bandwidth: bandwidth) do
                   xml.element("AudioChannelConfiguration", schemeIdUri: "urn:mpeg:dash:23003:3:audio_channel_configuration:2011",
                     value: "2")
                   xml.element("BaseURL") { xml.text url }
@@ -221,13 +214,7 @@ module Invidious::Routes::API::Manifest
 
         raw_params["host"] = uri.host.not_nil!
 
-        if CONFIG.https_only
-          scheme = "https://"
-        else
-          scheme = "http://"
-        end
-
-        "#{scheme}#{env.request.headers["Host"]}/videoplayback?#{raw_params}"
+        "#{HOST_URL}/videoplayback?#{raw_params}"
       end
     end
 
@@ -250,12 +237,7 @@ module Invidious::Routes::API::Manifest
     manifest = response.body
 
     if local
-      if CONFIG.https_only
-        scheme = "https://"
-      else
-        scheme = "http://"
-      end
-      manifest = manifest.gsub("https://www.youtube.com", "#{scheme}#{env.request.headers["Host"]}")
+      manifest = manifest.gsub("https://www.youtube.com", HOST_URL)
       manifest = manifest.gsub("index.m3u8", "index.m3u8?local=true")
     end
 

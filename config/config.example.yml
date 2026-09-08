@@ -22,93 +22,6 @@ db:
   port: 5432
   dbname: invidious
 
-
-  ## -----------------------------------
-  ## Database connection pool settings
-  ## -----------------------------------
-
-  ##
-  ## The maximum allowed number of connections within the connection pool.
-  ## When this number is reached and no connections are free, Invidious will
-  ## wait for up to `checkout_timeout` before raising an exception.
-  ##
-  ## Note: Setting to 0 will disable this limit and allow the the pool to
-  ## grow indefinitely.
-  ##
-  ## Accepted values: a positive integer
-  ## Default: 100
-  ##
-  #max_pool_size: 100
-
-  ##
-  ## How many idle connections should be allowed to exist within the connection pool.
-  ##
-  ## There is no concept of whether a connection is closed or open, or how long it has been
-  ## idly sitting by. Instead Idle connections are defined as any connections that are not
-  ## currently being used. When this number is exceeded but the amount of connections is still
-  ## under max_pool_size, new connections will be created on a checkout but immediately closed
-  ## and destroyed during an release operation.
-  ##
-  ## For the most part, this should just be set to the same number as the `max_pool_size`.
-  ##
-  ## Accepted values: a positive integer
-  ## Default: 100
-  ##
-  #max_idle_pool_size: 100
-
-  ##
-  ## The amount of connections to establish on start-up.
-  ##
-  ## When Invidious starts up, the database connection pool is immediately populated
-  ## with this many connections. This could allow an instance to avoid potentially experiencing
-  ## any degraded service during start-up; since a good amount of connections will be available
-  ## from the start rather than needing to be created on the fly as requests come in.
-  ##
-  ##
-  ## Accepted values: a positive integer
-  ## Default: 1
-  ##
-  #initial_pool_size  : 1
-
-  ##
-  ## How long to wait (in seconds) before timing out during a checkout
-  ##
-  ## Accepted values: a positive float
-  ## Default: 5.0
-  ##
-  #checkout_timeout: 5.0
-
-  ##
-  ## How many attempts to retry a connection
-  ##
-  ## This allows Invidious to gracefully handle network problems that can
-  ## cause a connection to fail or be unable to get established in the first
-  ## place.
-  ##
-  ## Note: The mechanisms of the underlying library will first try to reuse all the
-  ## currently available idle connections within the pool, as well as one additional attempt,
-  ## at no delay. Afterwards, it will began counting down the `retry_attempts` and wait
-  ## `retry_delay` seconds between each attempt.
-  ##
-  ## This heuristic ensures that unnecessary new connections are not being made for no reason, and
-  ## in the event of widespread network failures, will help to throw out dead connections from the
-  ## pool.
-  ##
-  ## Accepted values: a positive integer
-  ## Default: 5
-  ##
-  #retry_attempts: 5
-
-  ##
-  ## How long to wait (in seconds) between each retry attempt
-  ##
-  ## Note: See description for `retry_attempts` for more information
-  ##
-  ## Accepted values: a positive float
-  ## Default: 1.0
-  ##
-  #retry_delay: 1.0
-
 ##
 ## Database configuration using a single URI. This is an
 ## alternative to the 'db' parameter above. If both forms
@@ -119,10 +32,6 @@ db:
 ## sockets. To do so, remove the IP address (or FQDN) and port
 ## and append the 'host' parameter. E.g:
 ##   postgres://kemal:kemal@/invidious?host=/var/run/postgresql
-##
-## You can also configure the connection pool here by
-## adding query parameters with the same name as the value you
-## want to change.
 ##
 ## Accepted values: a postgres:// URI
 ## Default: postgres://kemal:kemal@localhost:5432/invidious
@@ -295,20 +204,6 @@ https_only: false
 #socket_binding:
 #  path: /tmp/invidious.sock
 #  permissions: 777
-
-##
-## Maximum size of the HTTP request line (in bytes).
-## Increase this value if you encounter 414 errors when using URLs with long
-## query parameters (e.g., very long continuation tokens).
-##
-## Note: This directly sets the HTTP server's max_request_line_size.
-## Be cautious when increasing this value on public instances.
-##
-## Accepted values: integer (size in bytes)
-## Default: 8192 (8KB, Crystal's default)
-## Recommended: 16384 (16KB) if experiencing 414 errors
-##
-#max_request_line_size: 16384
 
 # -----------------------------
 #  Network (outbound)
@@ -609,7 +504,7 @@ jobs:
     enable: true
 
 # -----------------------------
-#  Instance customization
+#  Miscellaneous
 # -----------------------------
 
 ##
@@ -620,78 +515,6 @@ jobs:
 ## Default: <none>
 ##
 #banner:
-
-##
-## custom text displayed at the bottom of every page within Invidious' footer. This can
-## used for instance announcements, e.g
-##
-## When unset Invidious defaults to some text that describes what Invidious is. See
-## localization key default_invidious_footer_text
-##
-## Accepted values: any string. HTML is accepted.
-## Default: <none>
-##
-#footer:
-
-##
-## Source code URL. If your instance is running a modified source
-## code, you MUST publish it somewhere and set this option.
-##
-## Accepted values: a string
-## Default: <none>
-##
-#modified_source_code_url: ""
-
-##
-## Email to contact the instance maintainer; used in a mailto: link within the footer.
-##
-## Accepted values: string
-## Default: <none>
-##
-# instance_maintainer_email:
-
-##
-## Link to the terms of service of the instance (if any)
-##
-## Displayed within the instance section of the footer
-##
-## Accepted values: String (link)
-## Default: <none>
-##
-# footer_instance_tos_link:
-
-##
-## Link to the privacy-policy of the instance (if any)
-##
-## Displayed within the instance section of the footer
-##
-## Accepted values: String (link)
-## Default: <none>
-##
-# footer_instance_privacy_policy_link:
-
-##
-## Instance donation URL. If your instance has a donation option.
-## you can add it here so it will be present in the footer along
-## with the donation link for the project itself.
-##
-## Accepted values: a string
-## Default: <none>
-##
-#footer_instance_donate_link: ""
-
-##
-## Custom fields to be displayed within the footer's instance section
-##
-## Accepted values: A nested array mapping field name and links together.
-## IE: [ ["field1", "https://example.com/1"], ["field2", "https://example.com/2"] ]
-## Default: <none>
-##
-# footer_instance_section_custom_fields: []
-
-# -----------------------------
-#  Miscellaneous
-# -----------------------------
 
 ##
 ## Subscribe to channels using PubSubHub (Google PubSubHubbub service).
@@ -747,13 +570,21 @@ hmac_key: "CHANGE_ME!!"
 #cache_annotations: false
 
 ##
+## Source code URL. If your instance is running a modified source
+## code, you MUST publish it somewhere and set this option.
+##
+## Accepted values: a string
+## Default: <none>
+##
+#modified_source_code_url: ""
+
+##
 ## Maximum custom playlist length limit.
 ##
 ## Accepted values: Integer
 ## Default: 500
 ##
 #playlist_length_limit: 500
-
 
 #########################################
 #
@@ -1081,6 +912,18 @@ default_user_preferences:
   #quality_dash: auto
 
   ##
+  ## Default dash video codec.
+  ##
+  ## Note: this setting only takes effect if the
+  ## 'quality' parameter is set to "dash".
+  ##
+  ## Accepted values:
+  ##    av1, h264
+  ## Default: h264
+  ##
+  #codec_dash: h264
+
+  ##
   ## Default video playback speed.
   ##
   ## Accepted values: 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0
@@ -1212,217 +1055,3 @@ default_user_preferences:
   ## Default: false
   ##
   #extend_desc: false
-
-##############################################
-# nadeko.net Invidious Fork exclusive settings:
-
-## Extra configurations for Invidious companion
-##
-## `i2p_public_url`: The public i2p url if you are hosting it
-## on a remote server with I2P.
-## `note`: Just a small note that will appear next to the backend
-##
-#invidious_companion:
-#  - private_url: "http://localhost:8282/companion"
-#  # public_url: "http://localhost:8282/companion"
-#  # i2p_public_url: "http://someb32i2paddress.b32.i2p/companion"
-#  # note: "Europe Backend"
-
-##
-## Materialious domain that appears bellow "Watch on Youtube"
-##
-## Note: This is useless for public instances.
-## Is better suitable for private instances
-##
-## Accepted values: a string
-## Default: null
-##
-#materialious_domain: null
-
-##
-## Enables/Disables Content-Security-Policy
-## ONLY DISABLE FOR DEBUGGING PURPOSES!
-##
-## Accepted values: true, false
-## Default: false
-##
-#csp: false
-
-##
-## Redis server for Video cache
-## Extremely recommended if you have a public instance
-## and you are running multiple Invidious processes to balance it's
-## load across the processes
-##
-## Accepted values: a string
-## Default: "" (this means tcp://localhost:6379)
-##
-#redis_url: ""
-
-#########################################
-#
-#  Video cache
-#
-#########################################
-
-video_cache:
-    ## Enable/Disable Video cache
-    ##
-    ## Accepted values: true, false
-    ## Default: true
-    ##
-    enable: true
-
-    ## The backend used for Video cache.
-    ## This can be PostgreSQL, Redis or LRU.
-    ##
-    ## Redis is recommended when using more than one
-    ## Invidious process for load balancing
-    ## LRU is recommended when using a single process
-    ##
-    ## Note: This Invidious fork has memory leaks fixed
-    ## so you can use LRU without having to worry about
-    ## losing all the cache after Invidious gets killed
-    ## by Out-of-Memory. Altrough LRU cache is not saved
-    ## across restarts.
-    ##
-    ## Accepted values: "lru", "redis", "postgres"
-    ## Default: "redis"
-    ##
-    backend: "redis"
-
-    ## Maximum amount of items that can be inside thecache.
-    ##
-    ## Accepted values: a positive integer
-    ## Default: 18432
-    ##
-    lru_max_size: 18432
-
-    ## Compress cache with Deflate to save RAM. Only works with Redis (1) and
-    ## LRU (2) cache.
-    ##
-    ## Accepted values: false, true
-    ## Default: false
-    ##
-    compress: false
-
-##
-## Maximum resolution that is going to be displayed
-## on the Invidious video player. For bandwidth saving.
-##
-## Accepted values: a positive integer OR null
-## Default: null
-## Example: 1080
-##
-#max_dash_resolution: null
-
-##
-## Checks if the companions in the `invidious_companion` list
-## are alive using their `/healthz` endpoint.
-##
-## Accepted values: A positive integer
-## Default: 30
-##
-#check_backends_interval: true
-
-##
-## The endpoint to check if a backend is alive or not.
-## If using a the nadeko.net Invidious companion patches you can set it to
-## "/status" to check if the Invidious companion instance that is being checked
-## is blocked by youtube.
-##
-## Accepted values: a string
-## Default: "/healthz"
-##
-#check_backends_path: "/healthz"
-
-##
-## Forces the video proxy.
-##
-## Accepted values: true, false
-## Default: true
-##
-#force_local: true
-
-##
-## Disables livestreams. This was added because Invidious companion
-## does not support livestreams *yet*. May be removed or reused
-## when Invidious companion adds supports for livestreams.
-##
-## Accepted values: true, false
-## Default: true
-##
-#disable_livestreams: true
-
-##
-## How many videos will appear on the popular page of
-## Invidious.
-##
-## Accepted values: A positive integer.
-## Default: 40
-##
-#max_popular_results: 40
-
-##
-## Disables video downloads, it will only give audio and subtitle
-## download options.
-##
-## Accepted values: true, false
-## Default: false
-##
-#disable_video_downloads: false
-
-##
-## The prefix of numbered domains to fix a specific backend to
-## a specific subdomain with a prefix.
-## Example: If you have domain "inv1.example.com" and "inv2.nadeko.net"
-## with `invidious_companion_prefix` set to `inv`,
-## using "inv1.example.com" will give the client the backend 1,
-## using "inv2.example.com" will give the client the backend 2,
-## and so on.
-## This was made for browsers with cookies disabled and third party clients.
-##
-## Accepted values: a string
-## Default: ""
-##
-#invidious_companion_prefix: ""
-
-##
-## Changes the prefix of the backends (companion instances)
-## that appear on the list of backends
-##
-## Accepted values: a string
-## Default: "Backend"
-##
-#backend_name_prefix: "Backend"
-
-#########################################
-#
-#  VideoJS Settings
-#
-#########################################
-
-videojs:
-    ## Change goal buffer length
-    ##
-    ## Accepted values: a positive integer OR null
-    ## Default: 30
-    ##
-    goal_buffer_length: 30
-
-    ## Change max goal buffer length
-    ##
-    ## Accepted values: a positive integer OR null
-    ## Default: 60
-    ##
-    max_goal_buffer_length: 60
-
-## Change how many threads should Invidious use to make
-## use of other CPU cores.
-## Example: If your CPU has 4 cores, you can set cpu_threads
-## to 4 to make use of the 4 cores.
-##
-## Accepted values: a positive integer
-## Default: 1
-##
-cpu_threads: 1

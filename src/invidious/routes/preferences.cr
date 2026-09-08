@@ -12,7 +12,6 @@ module Invidious::Routes::PreferencesRoute
 
   def self.update(env)
     locale = env.get("preferences").as(Preferences).locale
-    preferences = env.get("preferences").as(Preferences)
     referer = get_referer(env)
 
     video_loop = env.params.body["video_loop"]?.try &.as(String)
@@ -67,6 +66,9 @@ module Invidious::Routes::PreferencesRoute
     quality_dash = env.params.body["quality_dash"]?.try &.as(String)
     quality_dash ||= CONFIG.default_user_preferences.quality_dash
 
+    codec_dash = env.params.body["codec_dash"]?.try &.as(String)
+    codec_dash ||= CONFIG.default_user_preferences.codec_dash
+
     volume = env.params.body["volume"]?.try &.as(String).to_i?
     volume ||= CONFIG.default_user_preferences.volume
 
@@ -103,7 +105,7 @@ module Invidious::Routes::PreferencesRoute
     default_home = env.params.body["default_home"]?.try &.as(String) || CONFIG.default_user_preferences.default_home
 
     feed_menu = [] of String
-    5.times do |index|
+    4.times do |index|
       option = env.params.body["feed_menu[#{index}]"]?.try &.as(String) || ""
       if !option.empty?
         feed_menu << option
@@ -150,39 +152,6 @@ module Invidious::Routes::PreferencesRoute
     search_privacy ||= "off"
     search_privacy = search_privacy == "on"
 
-    hidden_channels = env.params.body["hidden_channels"]?.try &.as(String)
-    if hidden_channels
-      hidden_channels = hidden_channels.split("\n")
-
-      delete = [] of Int32
-      hidden_channels.each_with_index do |ucid, idx|
-        u = ucid.rstrip("\r").rstrip(" ")
-
-        if (u == "") || (u == "\r")
-          delete << idx
-          next
-        end
-
-        # 24 is the length of channel UCIDs
-        if u.size != 24
-          raise InfoException.new("Channel ID has to be 25 characters long!")
-        else
-          hidden_channels[idx] = u
-        end
-      end
-
-      delete.reverse_each { |i| hidden_channels.delete_at(i) }
-    end
-
-    default_trending_type = env.params.body["default_trending_type"]?.try &.as(String)
-    default_trending_type ||= Invidious::Routes::Feeds::TrendingTypes::Default
-
-    show_community_backends = env.params.body["show_community_backends"]?.try &.as(String)
-    show_community_backends ||= "off"
-    show_community_backends = show_community_backends == "on"
-
-    current_companion = preferences.current_companion
-
     # Convert to JSON and back again to take advantage of converters used for compatibility
     preferences = Preferences.from_json({
       annotations:                 annotations,
@@ -204,6 +173,7 @@ module Invidious::Routes::PreferencesRoute
       player_style:                player_style,
       quality:                     quality,
       quality_dash:                quality_dash,
+      codec_dash:                  codec_dash,
       default_home:                default_home,
       feed_menu:                   feed_menu,
       automatic_instance_redirect: automatic_instance_redirect,
@@ -221,10 +191,6 @@ module Invidious::Routes::PreferencesRoute
       save_player_pos:             save_player_pos,
       default_playlist:            default_playlist,
       search_privacy:              search_privacy,
-      hidden_channels:             hidden_channels,
-      default_trending_type:       default_trending_type,
-      show_community_backends:     show_community_backends,
-      current_companion:           current_companion,
     }.to_json)
 
     if user = env.get? "user"
@@ -236,7 +202,7 @@ module Invidious::Routes::PreferencesRoute
         CONFIG.default_user_preferences.default_home = env.params.body["admin_default_home"]?.try &.as(String) || CONFIG.default_user_preferences.default_home
 
         admin_feed_menu = [] of String
-        5.times do |index|
+        4.times do |index|
           option = env.params.body["admin_feed_menu[#{index}]"]?.try &.as(String) || ""
           if !option.empty?
             admin_feed_menu << option
@@ -269,7 +235,12 @@ module Invidious::Routes::PreferencesRoute
         File.write("config/config.yml", CONFIG.to_yaml)
       end
     else
-      env.response.cookies["PREFS"] = Invidious::User::Cookies.prefs(env.request.headers["Host"], preferences)
+      host = env.get("header_x-forwarded-host")
+      if alt = CONFIG.alternative_domains.index(host)
+        env.response.cookies["PREFS"] = Invidious::User::Cookies.prefs(CONFIG.alternative_domains[alt], preferences)
+      else
+        env.response.cookies["PREFS"] = Invidious::User::Cookies.prefs(CONFIG.domain, preferences)
+      end
     end
 
     env.redirect referer
@@ -304,7 +275,12 @@ module Invidious::Routes::PreferencesRoute
         preferences.dark_mode = "dark"
       end
 
-      env.response.cookies["PREFS"] = Invidious::User::Cookies.prefs(env.request.headers["Host"], preferences)
+      host = env.get("header_x-forwarded-host")
+      if alt = CONFIG.alternative_domains.index(host)
+        env.response.cookies["PREFS"] = Invidious::User::Cookies.prefs(CONFIG.alternative_domains[alt], preferences)
+      else
+        env.response.cookies["PREFS"] = Invidious::User::Cookies.prefs(CONFIG.domain, preferences)
+      end
     end
 
     if redirect

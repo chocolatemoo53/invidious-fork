@@ -1,66 +1,51 @@
-# DEVELOPMENT DOCKER COMPOSE FILE! DO NOT USE ON PRODUCTION!
+# Warning: This docker-compose file is made for development purposes.
+# Using it will build an image from the locally cloned repository.
+#
+# If you want to use Invidious in production, see the docker-compose.yml file provided
+# in the installation documentation: https://docs.invidious.io/installation/
 
-x-common-invidious-env: &common-invidious-env
-    INVIDIOUS_CONFIG_FILE: "/etc/invidious/config.yml"
-
-x-common: &common-invidious
-  image: "git.nadeko.net/fijxu/invidious:latest"
-  restart: always
-  deploy:
-    replicas: 4
-  volumes:
-    - ./docker/config.yml:/etc/invidious/config.yml:ro
-    - valkey_socket:/tmp
-
-x-common-haproxy: &common-haproxy
-  hostname: haproxy
-  image: haproxy:lts-alpine
-  restart: always
-  volumes:
-    - ./docker/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
-
-x-common-valkey: &common-valkey
-    image: valkey/valkey:9.1-alpine
-    hostname: valkey
-    restart: unless-stopped
-    volumes:
-      - ./docker/valkey.conf:/usr/local/etc/valkey/valkey.conf
-      - valkey_socket:/tmp
-    command: "valkey-server /usr/local/etc/valkey/valkey.conf"
-
+version: "3"
 services:
 
-  # INVIDIOUS SECTION #
   invidious:
-    <<: *common-invidious
-    environment:
-      <<: *common-invidious-env
-    networks:
-      - invidious
-    depends_on:
-      - valkey
-      - pgbouncer
-      - haproxy
-
-  # HAPROXY SECTION #
-  haproxy:
-    <<: *common-haproxy
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
     ports:
-      # Port to expose invidious
-      - "127.0.0.1:11101:8001"
-    networks:
-      - invidious
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      invidious-db:
+        condition: service_healthy
+        restart: true
+    environment:
+      # Please read the following file for a comprehensive list of all available
+      # configuration options and their associated syntax:
+      # https://github.com/iv-org/invidious/blob/master/config/config.example.yml
+      INVIDIOUS_CONFIG: |
+        db:
+          dbname: invidious
+          user: kemal
+          password: kemal
+          host: invidious-db
+          port: 5432
+        check_tables: true
+        # external_port:
+        # domain:
+        # https_only: false
+        # statistics_enabled: false
+        hmac_key: "CHANGE_ME!!"
+    healthcheck:
+      test: wget -nv --tries=1 --spider http://127.0.0.1:3000/api/v1/stats || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 2
 
-  valkey:
-    <<: *common-valkey
-    networks:
-      - invidious
-
-  postgres:
-    image: docker.io/library/postgres:18
+  invidious-db:
+    image: docker.io/library/postgres:14
     restart: unless-stopped
     volumes:
-      - /tmp/postgresdata:/var/lib/postgresql/data
+      - postgresdata:/var/lib/postgresql/data
       - ./config/sql:/config/sql
       - ./docker/init-invidious-db.sh:/docker-entrypoint-initdb.d/init-invidious-db.sh
     environment:
@@ -69,34 +54,6 @@ services:
       POSTGRES_PASSWORD: kemal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-    networks:
-      - invidious
-
-  # Pgbouncer to keep connections to the database open
-  pgbouncer:
-    image: edoburu/pgbouncer
-    restart: unless-stopped
-    environment:
-      - POOL_MODE=transaction
-      # Everything is being done locally
-      # https://www.pgbouncer.org/config.html
-      - AUTH_TYPE=scram-sha-256
-      - DB_HOST=postgres
-      - DB_USER=kemal
-      - DB_PASSWORD=kemal
-      - DB_NAME=invidious
-      - VERBOSE=3
-      - LISTEN_PORT=6432
-    networks:
-      - invidious
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-networks:
-  invidious:
-    name: invidious
 
 volumes:
-  valkey_socket:
   postgresdata:

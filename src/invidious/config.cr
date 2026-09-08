@@ -6,52 +6,6 @@ struct DBConfig
   property host : String
   property port : Int32
   property dbname : String
-
-  # How many connections to construct on start-up, and keep it there.
-  property initial_pool_size : Int32 = 1
-  # The maximum size of the connection pool
-  property max_pool_size : Int32 = 100
-  # The maximum amount of idle connections within the pool
-  # idle connections are defined as created connections that are
-  # sitting around in the pool. Exceeding this number will cause new connections
-  # to be created on checkout and then simply dropped on release, till the maximum pool size
-  # from which there will be a checkout timeout.
-  property max_idle_pool_size : Int32 = 100
-  # The maximum amount of seconds to wait for a connection to become
-  # available when all connections can be checked out, and the pool has
-  # reached its maximum size.
-  property checkout_timeout : Float32 = 5.0
-  # The number of tries allowed to establish a connection, reconnect, or retry
-  # the command in case of any network errors.
-  property retry_attempts : Int32 = 5
-  # The number of seconds between each retry
-  property retry_delay : Float32 = 1.0
-
-  def to_url
-    URI.new(
-      scheme: "postgres",
-      user: user,
-      password: password,
-      host: host,
-      port: port,
-      path: dbname,
-      query: get_connection_pool_query_string
-    )
-  end
-
-  # Creates the query parameters for configuring the connection pool
-  private def get_connection_pool_query_string
-    {% begin %}
-      {% pool_vars = @type.instance_vars.reject { |v| {"user", "password", "host", "port", "dbname"}.includes?(v.name.stringify) } %}
-      {% raise "Error unable to isolate database connection pool properties" if pool_vars.size > 6 %}
-
-      URI::Params.build do | build |
-        {% for vars in pool_vars %}
-          build.add {{vars.name.stringify}}, {{vars.name}}.to_s
-        {% end %}
-      end
-    {% end %}
-  end
 end
 
 struct SocketBindingConfig
@@ -83,8 +37,9 @@ struct ConfigPreferences
   property player_style : String = "invidious"
   property quality : String = "dash"
   property quality_dash : String = "auto"
+  property codec_dash : String = "h264"
   property default_home : String? = "Popular"
-  property feed_menu : Array(String) = ["Popular", "Trending", "Subscriptions", "Playlists", "History"]
+  property feed_menu : Array(String) = ["Popular", "Trending", "Subscriptions", "Playlists"]
   property automatic_instance_redirect : Bool = false
   property region : String = "US"
   property related_videos : Bool = true
@@ -100,14 +55,6 @@ struct ConfigPreferences
   property save_player_pos : Bool = false
   @[YAML::Field(ignore: true)]
   property default_playlist : String? = nil
-  property enable_dearrow : Bool = false
-  @[YAML::Field(ignore: true)]
-  property hidden_channels : Array(String)? = nil
-  @[YAML::Field(ignore: true)]
-  property default_trending_type : Invidious::Routes::Feeds::TrendingTypes = Invidious::Routes::Feeds::TrendingTypes::Default
-  property show_community_backends : Bool = false
-  @[YAML::Field(ignore: true)]
-  property current_companion : Int32? = nil
   property search_privacy : Bool = false
 
   def to_tuple
@@ -146,13 +93,6 @@ class Config
     @[YAML::Field(converter: Preferences::URIConverter)]
     property public_url : URI = URI.parse("")
 
-    @[YAML::Field(converter: Preferences::URIConverter)]
-    property i2p_public_url : URI = URI.parse("")
-
-    property note : String = ""
-    property domain : Array(String) = [] of String
-    property community : Bool = false
-
     # Indicates if this companion instance uses the built-in proxy
     property builtin_proxy : Bool = false
   end
@@ -162,6 +102,8 @@ class Config
   # Time interval between two executions of the job that crawls channel videos (subscriptions update).
   @[YAML::Field(converter: Preferences::TimeSpanConverter)]
   property channel_refresh_interval : Time::Span = 30.minutes
+  # Number of threads to use for updating feeds
+  property feed_threads : Int32 = 1
   # Log file path or STDOUT
   property output : String = "STDOUT"
   # Default log level, valid YAML values are ints and strings, see src/invidious/helpers/logger.cr
@@ -174,10 +116,6 @@ class Config
   # Database configuration using 12-Factor "Database URL" syntax
   @[YAML::Field(converter: Preferences::URIConverter)]
   property database_url : URI = URI.parse("")
-  @[YAML::Field(converter: Preferences::URIConverter)]
-  property redis_url : URI = URI.parse("")
-  # Use polling to keep decryption function up to date
-  property decrypt_polling : Bool = false
   # Used for crawling channels: threads should check all videos uploaded by a channel
   property full_refresh : Bool = false
 
@@ -186,18 +124,14 @@ class Config
 
   # Used to tell Invidious it is behind a proxy, so links to resources should be https://
   property https_only : Bool?
-  # Enable or disable CSP
-  property csp : Bool? = true
   # HMAC signing key for CSRF tokens and verifying pubsub subscriptions
   property hmac_key : String = ""
   # Domain to be used for links to resources on the site where an absolute URL is required
   property domain : String?
-  # Materialious redirects
-  property materialious_domain : String?
-
+  # Additional domain list that is going to be used for cookie domain validation
+  property alternative_domains : Array(String) = [] of String
   # Subscribe to channels using PubSubHubbub (requires domain, hmac_key)
   property use_pubsub_feeds : Bool | Int32 = false
-  property use_innertube_for_feeds : Bool = true
   property popular_enabled : Bool = true
   property captcha_enabled : Bool = true
   property login_enabled : Bool = true
@@ -212,6 +146,8 @@ class Config
   property check_tables : Bool = false
   # Cache annotations requested from IA, will not cache empty annotations or annotations that only contain cards
   property cache_annotations : Bool = false
+  # Optional banner to be displayed along top of page for announcements, etc.
+  property banner : String? = nil
   # Enables 'Strict-Transport-Security'. Ensure that `domain` and all subdomains are served securely
   property hsts : Bool? = true
   # Disable proxying server-wide: options: 'dash', 'livestreams', 'downloads', 'local'
@@ -219,23 +155,9 @@ class Config
   # Enable the user notifications for all users
   property enable_user_notifications : Bool = true
 
-  # Optional banner to be displayed along top of page for announcements, etc.
-  property banner : String? = nil
-  # Optional footer text to be displayed within Invidious' footer. Can be used for maintainer contact info, etc.
-  property footer : String? = nil
-  # Email to contact the instance maintainer. This is used within the footer as an mailto link.
-  property instance_maintainer_email : String? = nil
   # URL to the modified source code to be easily AGPL compliant
-  # Will display in the footer
+  # Will display in the footer, next to the main source code link
   property modified_source_code_url : String? = nil
-  # Link to the terms of service of the instance (if any). Will be displayed in the footer.
-  property footer_instance_tos_link : String? = nil
-  # Link to the privacy policy of the instance (if any). Will be displayed in the footer.
-  property footer_instance_privacy_policy_link : String? = nil
-  # Instance donation URL displayed in the "Instance" section of the footer
-  property footer_instance_donate_link : String? = nil
-  # Custom fields to be displayed within the footer's instance section
-  property footer_instance_section_custom_fields : Array(Array(String)) = [] of Array(String)
 
   # Connect to YouTube over 'ipv6', 'ipv4'. Will sometimes resolve fix issues with rate-limiting (see https://github.com/ytdl-org/youtube-dl/issues/21729)
   @[YAML::Field(converter: Preferences::FamilyConverter)]
@@ -247,8 +169,6 @@ class Config
   property host_binding : String = "0.0.0.0"
   # Path and permissions to make Invidious listen on a UNIX socket instead of a TCP port
   property socket_binding : SocketBindingConfig? = nil
-  # Maximum size of request line (in bytes), increase if you get 414 errors with long URLs
-  property max_request_line_size : Int32 = 16384
   # Pool size for HTTP requests to youtube.com and ytimg.com (each domain has a separate pool of `pool_size`)
   property pool_size : Int32 = 100
   # HTTP Proxy configuration
@@ -263,9 +183,6 @@ class Config
   # Invidious companion API key
   property invidious_companion_key : String = ""
 
-  # Invidious companion prefix for numbered domains
-  property invidious_companion_prefix : String? = nil
-
   # Saved cookies in "name1=value1; name2=value2..." format
   @[YAML::Field(converter: Preferences::StringToCookies)]
   property cookies : HTTP::Cookies = HTTP::Cookies.new
@@ -273,37 +190,8 @@ class Config
   # Playlist length limit
   property playlist_length_limit : Int32 = 500
 
-  # The max resolution the Instance can offer
-  property max_dash_resolution : Int32?
-
-  property pubsub_domain : String = ""
-
-  property video_cache : VideoCacheConfig = VideoCacheConfig.from_yaml("")
-
-  class VideoCacheConfig
-    include YAML::Serializable
-
-    property enabled : Bool = true
-    property backend : Invidious::Database::Videos::CacheType = Invidious::Database::Videos::CacheType::Redis
-    # Max quantity of keys that can be held on the LRU cache
-    property lru_max_size : Int32 = 18432 # ~512MB
-    # Compress cache with Deflate
-    property compress : Bool = false
-  end
-
-  property check_backends_interval : Int32 = 30
-
-  property check_backends_path : String = "/healthz"
-
-  property force_local : Bool = true
-
-  property disable_livestreams : Bool = true
-
-  property max_popular_results : Int32 = 40
-
-  property disable_video_downloads : Bool = false
-
-  property backend_name_prefix : String = "Backend"
+  # Disable easy to abuse API endpoints
+  property disable_abusable_api : Bool = false
 
   property videojs : VideoJSConfig = VideoJSConfig.from_yaml("")
 
@@ -311,14 +199,12 @@ class Config
     include YAML::Serializable
     include JSON::Serializable
 
+    # This are the default values that VideoJS uses.
+    # See `assets/videojs/video.js/video.js` file
+    # and search for `GOAL_BUFFER_LENGTH` and `MAX_GOAL_BUFFER_LENGTH`
     property goal_buffer_length : Int32? = 30
     property max_goal_buffer_length : Int32? = 60
   end
-
-  # Disable easy to abuse API endpoints
-  property disable_abusable_api : Bool = false
-
-  property cpu_threads : Int32 = 1
 
   def disabled?(option)
     case disabled = CONFIG.disable_proxy
@@ -333,64 +219,6 @@ class Config
     else
       return false
     end
-  end
-
-  def self.reload
-    LOGGER.info("Config: Reloading configuration")
-    # Load config from file or YAML string env var
-    env_config_file = "INVIDIOUS_CONFIG_FILE"
-    env_config_yaml = "INVIDIOUS_CONFIG"
-
-    config_file = ENV.has_key?(env_config_file) ? ENV.fetch(env_config_file) : "config/config.yml"
-    config_yaml = ENV.has_key?(env_config_yaml) ? ENV.fetch(env_config_yaml) : File.read(config_file)
-
-    begin
-      config = Config.from_yaml(config_yaml)
-    rescue ex
-      LOGGER.error("Config: Error when reloading configuration: '#{ex.message}'")
-      config = CONFIG
-    end
-
-    # TODO: Preserve old config and don't exit on fail
-    {% for ivar in Config.instance_vars %}
-	  CONFIG.{{ivar}} = config.{{ivar}}
-	  {% env_id = "INVIDIOUS_#{ivar.id.upcase}" %}
-
-        if ENV.has_key?({{env_id}})
-            env_value = ENV.fetch({{env_id}})
-            success = false
-
-            # Use YAML converter if specified
-            {% ann = ivar.annotation(::YAML::Field) %}
-            {% if ann && ann[:converter] %}
-                CONFIG.{{ivar.id}} = {{ann[:converter]}}.from_yaml(YAML::ParseContext.new, YAML::Nodes.parse(ENV.fetch({{env_id}})).nodes[0])
-                success = true
-
-            # Use regular YAML parser otherwise
-            {% else %}
-                {% ivar_types = ivar.type.union? ? ivar.type.union_types : [ivar.type] %}
-                # Sort types to avoid parsing nulls and numbers as strings
-                {% ivar_types = ivar_types.sort_by { |ivar_type| ivar_type == Nil ? 0 : ivar_type == Int32 ? 1 : 2 } %}
-                {{ivar_types}}.each do |ivar_type|
-                    if !success
-                        begin
-                            CONFIG.{{ivar.id}} = ivar_type.from_yaml(env_value)
-                            success = true
-                        rescue
-                            # nop
-                        end
-                    end
-                end
-            {% end %}
-
-            # Exit on fail
-            if !success
-				LOGGER.error("Config: Error when reloading environment variables for the configuration, exiting (fixme!)")
-                exit(1)
-            end
-        end
-	{% end %}
-    LOGGER.info("Config: Reload successfull")
   end
 
   def self.load
@@ -484,23 +312,18 @@ class Config
     # Build database_url from db.* if it's not set directly
     if config.database_url.to_s.empty?
       if db = config.db
-        config.database_url = db.to_url
+        config.database_url = URI.new(
+          scheme: "postgres",
+          user: db.user,
+          password: db.password,
+          host: db.host,
+          port: db.port,
+          path: db.dbname,
+        )
       else
         puts "Config: Either database_url or db.* is required"
         exit(1)
       end
-    else
-      # Add default connection pool settings as needed
-      db_url_query_params = config.database_url.query_params
-
-      {% begin %}
-        {% pool_vars = DBConfig.instance_vars.reject { |v| {"user", "password", "host", "port", "dbname"}.includes?(v.name.stringify) } %}
-        {% for vars in pool_vars %}
-          db_url_query_params[{{vars.name.stringify}}] = db_url_query_params[{{vars.name.stringify}}]? || {{vars.default_value}}.to_s
-        {% end %}
-      {% end %}
-
-      config.database_url.query_params = db_url_query_params
     end
 
     # Check if the socket configuration is valid

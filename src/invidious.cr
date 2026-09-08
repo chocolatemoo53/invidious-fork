@@ -30,7 +30,6 @@ require "xml"
 require "yaml"
 require "compress/zip"
 require "protodec/utils"
-require "redis"
 
 require "./invidious/database/*"
 require "./invidious/database/migrations/*"
@@ -51,10 +50,6 @@ require "./invidious/routes/**"
 require "./invidious/jobs/base_job"
 require "./invidious/jobs/*"
 
-{% if flag?(:gc_none) %}
-  require "gcry"
-{% end %}
-
 # Declare the base namespace for invidious
 module Invidious
 end
@@ -72,9 +67,7 @@ rescue ex
   puts "Check your 'config.yml' database settings or PostgreSQL settings."
   exit(1)
 end
-
 HOST_URL           = make_host_url(Kemal.config)
-PUBSUB_HOST_URL    = CONFIG.pubsub_domain
 MAX_ITEMS_PER_PAGE = 1500
 
 CURRENT_BRANCH  = {{ "#{`git branch | sed -n '/* /s///p'`.strip}" }}
@@ -99,11 +92,9 @@ YT_POOL = YoutubeConnectionPool.new(URI.parse("https://www.youtube.com"), capaci
 
 GGPHT_POOL = YoutubeConnectionPool.new(URI.parse("https://yt3.ggpht.com"), capacity: CONFIG.pool_size)
 
-COMPANION_POOL = [] of CompanionConnectionPool
-
-CONFIG.invidious_companion.each do |companion|
-  COMPANION_POOL << CompanionConnectionPool.new(companion, capacity: CONFIG.pool_size)
-end
+COMPANION_POOL = CompanionConnectionPool.new(
+  capacity: CONFIG.pool_size
+)
 
 # CLI
 Kemal.config.extra_options do |parser|
@@ -111,6 +102,14 @@ Kemal.config.extra_options do |parser|
   parser.on("-c THREADS", "--channel-threads=THREADS", "Number of threads for refreshing channels (default: #{CONFIG.channel_threads})") do |number|
     begin
       CONFIG.channel_threads = number.to_i
+    rescue ex
+      puts "THREADS must be integer"
+      exit
+    end
+  end
+  parser.on("-f THREADS", "--feed-threads=THREADS", "Number of threads for refreshing feeds (default: #{CONFIG.feed_threads})") do |number|
+    begin
+      CONFIG.feed_threads = number.to_i
     rescue ex
       puts "THREADS must be integer"
       exit
@@ -142,21 +141,9 @@ if CONFIG.output.upcase != "STDOUT"
 end
 OUTPUT = CONFIG.output.upcase == "STDOUT" ? STDOUT : File.open(CONFIG.output, mode: "a")
 LOGGER = Invidious::LogHandler.new(OUTPUT, CONFIG.log_level, CONFIG.colorize_logs)
-LOGGER.debug("CPU Threads: #{CONFIG.cpu_threads}")
-Fiber::ExecutionContext.default.resize(CONFIG.cpu_threads)
 
 # Check table integrity
 Invidious::Database.check_integrity(CONFIG)
-Invidious::Database::Videos.init
-
-# Minifies Invidious Javascript
-{% if flag?(:minify_debug) || (flag?(:release) || flag?(:production)) && !flag?(:skip_minified_js) %}
-  {% puts "\nMinifying Invidious JavaScript\n" %}
-  {% puts run("../scripts/minify-js.cr").stringify %}
-  JS_PATH="js/minified"
-{% else %}
-  JS_PATH = "js"
-{% end %}
 
 {% if !flag?(:skip_videojs_download) %}
   # Resolve player dependencies. This is done at compile time.
@@ -179,6 +166,10 @@ if CONFIG.channel_threads > 0
   Invidious::Jobs.register Invidious::Jobs::RefreshChannelsJob.new(PG_DB)
 end
 
+if CONFIG.feed_threads > 0
+  Invidious::Jobs.register Invidious::Jobs::RefreshFeedsJob.new(PG_DB)
+end
+
 if CONFIG.statistics_enabled
   Invidious::Jobs.register Invidious::Jobs::StatisticsRefreshJob.new(PG_DB, SOFTWARE)
 end
@@ -198,18 +189,6 @@ Invidious::Jobs.register Invidious::Jobs::NotificationJob.new(NOTIFICATION_CHANN
 Invidious::Jobs.register Invidious::Jobs::ClearExpiredItemsJob.new
 
 Invidious::Jobs.register Invidious::Jobs::InstanceListRefreshJob.new
-
-COMPANION_STATUS = begin
-  CompanionStatus.new if CONFIG.invidious_companion.present?
-rescue
-  nil
-end
-
-if companion_status = COMPANION_STATUS
-  Invidious::Jobs.register Invidious::Jobs::CompanionChecker.new(companion_status)
-else
-  LOGGER.info("jobs: Disabling CompanionChecker job. invidious-companion and their respective external video playback proxies (if set on invidious-companion) will not be checked")
-end
 
 Invidious::Jobs.start_all
 

@@ -198,15 +198,3 @@ addEventListener('load', function (e) {
 });
 
 document.getElementById("try-reddit-comments-link").onclick = swap_comments;
-
-addEventListener("DOMContentLoaded", () => {
-    const transcriptLines = document.getElementById("lines");
-    for (const transcriptLine of transcriptLines.children) {
-        if (transcriptLine.nodeName != "A") continue
-
-        transcriptLine.addEventListener("click", (event) => {
-            event.preventDefault();
-            player.currentTime(transcriptLine.getAttribute('data-jump-time'));
-        })
-    }
-})

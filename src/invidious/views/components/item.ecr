@@ -115,15 +115,12 @@
               if item.is_a?(PlaylistVideo)
                 link_url = "/watch?v=#{item.id}&list=#{item.plid}&index=#{item.index}"
                 endpoint_params = "?v=#{item.id}&list=#{item.plid}"
-                embed_id = item.id
               elsif item.is_a?(MixVideo)
                 link_url = "/watch?v=#{item.id}&list=#{item.rdid}"
                 endpoint_params = "?v=#{item.id}&list=#{item.rdid}"
-                embed_id = item.id
               else
                 link_url = "/watch?v=#{item.id}"
                 endpoint_params = "?v=#{item.id}"
-                embed_id = item.id
               end
             -%>
 

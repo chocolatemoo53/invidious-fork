@@ -10,7 +10,7 @@ targets:
     main: src/invidious.cr
 
 description: |
-   Invidious is an alternative front-end to YouTube
+   Invidious is an alternative front-end to YouTube 
 
 dependencies:
   pg:
@@ -21,25 +21,16 @@ dependencies:
     version: ~> 0.21.0
   kemal:
     github: kemalcr/kemal
-    version: ~> 1.9.0
+    version: ~> 1.6.0
   protodec:
     github: iv-org/protodec
     version: ~> 0.1.5
   athena-negotiation:
     github: athena-framework/negotiation
     version: ~> 0.1.1
-  redis:
-    github: jgaskins/redis
-    version: ~> 0.15.3
   http_proxy:
     github: mamantoha/http_proxy
     version: ~> 0.10.3
-  lru:
-    github: fijxu/crystal-lru
-    version: ~> 1.0.5
-  gcry:
-    github: sdogruyol/gcry
-    version: ~> 0.21.3
 
 development_dependencies:
   spectator:

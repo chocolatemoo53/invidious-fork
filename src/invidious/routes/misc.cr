@@ -23,12 +23,6 @@ module Invidious::Routes::Misc
       else
         env.redirect "/feed/popular"
       end
-    when "History"
-      if user
-        env.redirect "/feed/history"
-      else
-        env.redirect "/feed/popular"
-      end
     else
       templated "search_homepage", navbar_search: false
     end

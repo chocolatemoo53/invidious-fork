@@ -30,8 +30,6 @@ class Invidious::Jobs::SubscribeToFeedsJob < Invidious::Jobs::BaseJob
           spawn do
             begin
               response = subscribe_pubsub(ucid, hmac_key)
-              LOGGER.debug("SubscribeToFeedsJob: Subscribed to #{ucid}.")
-              LOGGER.trace("SubscribeToFeedsJob: response.body: #{response.body}")
 
               if response.status_code >= 400
                 LOGGER.error("SubscribeToFeedsJob: #{ucid} : #{response.body}")

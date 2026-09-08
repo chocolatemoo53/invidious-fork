@@ -11,15 +11,13 @@ struct Invidious::User
     # Session ID (SID) cookie
     # Parameter "domain" comes from the global config
     def sid(domain : String?, sid) : HTTP::Cookie
-      # Strip the port from the domain if it's being accessed from another port
-      # Browsers will reject the cookie if it contains the port number. This is
-      # because `example.com:3000` is not the same as `example.com` on a cookie.
-      domain = domain.split(":")[0]
       # Not secure if it's being accessed from I2P
       # Browsers expect the domain to include https. On I2P there is no HTTPS
-      if domain.not_nil!.split(".").last == "i2p"
+      # Tor browser works fine with secure being true
+      if (domain.try &.split(".").last == "i2p") && @@secure
         @@secure = false
       end
+
       return HTTP::Cookie.new(
         name: "SID",
         domain: domain,
@@ -34,15 +32,13 @@ struct Invidious::User
     # Preferences (PREFS) cookie
     # Parameter "domain" comes from the global config
     def prefs(domain : String?, preferences : Preferences) : HTTP::Cookie
-      # Strip the port from the domain if it's being accessed from another port
-      # Browsers will reject the cookie if it contains the port number. This is
-      # because `example.com:3000` is not the same as `example.com` on a cookie.
-      domain = domain.split(":")[0]
       # Not secure if it's being accessed from I2P
       # Browsers expect the domain to include https. On I2P there is no HTTPS
-      if domain.not_nil!.split(".").last == "i2p"
+      # Tor browser works fine with secure being true
+      if (domain.try &.split(".").last == "i2p") && @@secure
         @@secure = false
       end
+
       return HTTP::Cookie.new(
         name: "PREFS",
         domain: domain,
@@ -50,8 +46,7 @@ struct Invidious::User
         expires: Time.utc + 2.years,
         secure: @@secure,
         http_only: false,
-        samesite: HTTP::Cookie::SameSite::Lax,
-        path: "/"
+        samesite: HTTP::Cookie::SameSite::Lax
       )
     end
   end

@@ -41,7 +41,7 @@ invidious_js.each do |path|
 
   # A couple non Invidious JS files are also shipped alongside Invidious due to various reasons
   next if {
-            "sse.js", "videojs-contrib-quality-menu.js", "videojs-youtube-annotations.min.js",
+            "sse.js", "silvermine-videojs-quality-selector.min.js", "videojs-youtube-annotations.min.js",
           }.includes?(file_name)
 
   jslicence_table_rows << create_licence_tr(

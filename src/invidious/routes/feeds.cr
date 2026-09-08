@@ -1,14 +1,6 @@
 {% skip_file if flag?(:api_only) %}
 
 module Invidious::Routes::Feeds
-  enum TrendingTypes
-    Default
-    Music
-    Gaming
-    Movies
-    Livestreams
-  end
-
   def self.view_all_playlists_redirect(env)
     env.redirect "/feed/playlists"
   end
@@ -43,7 +35,6 @@ module Invidious::Routes::Feeds
     locale = env.get("preferences").as(Preferences).locale
 
     if CONFIG.popular_enabled
-      preferences = env.get("preferences").as(Preferences)
       templated "feeds/popular"
     else
       message = I18n.translate(locale, "The Popular feed has been disabled by the administrator.")
@@ -56,7 +47,7 @@ module Invidious::Routes::Feeds
     locale = preferences.locale
 
     trending_type = env.params.query["type"]?
-    trending_type ||= preferences.default_trending_type.to_s
+    trending_type ||= "Default"
 
     region = env.params.query["region"]?
     region ||= preferences.region
@@ -170,7 +161,7 @@ module Invidious::Routes::Feeds
       "default" => "http://www.w3.org/2005/Atom",
     }
 
-    response = YT_POOL.client env, ["Expires", "Cache-Control", "Date"], &.get("/feeds/videos.xml?channel_id=#{ucid}")
+    response = YT_POOL.client &.get("/feeds/videos.xml?channel_id=#{ucid}")
     return error_atom(404, NotFoundException.new("Channel does not exist.")) if response.status_code == 404
     rss = XML.parse(response.body)
 
@@ -325,7 +316,7 @@ module Invidious::Routes::Feeds
       end
     end
 
-    response = YT_POOL.client env, ["Expires", "Cache-Control", "Date"], &.get("/feeds/videos.xml?playlist_id=#{plid}")
+    response = YT_POOL.client &.get("/feeds/videos.xml?playlist_id=#{plid}")
     return error_atom(404, NotFoundException.new("Playlist does not exist.")) if response.status_code == 404
 
     document = XML.parse(response.body)
@@ -434,28 +425,24 @@ module Invidious::Routes::Feeds
         author = entry.xpath_node("default:author/default:name", namespaces).not_nil!.content
         published = Time.parse_rfc3339(entry.xpath_node("default:published", namespaces).not_nil!.content)
         updated = Time.parse_rfc3339(entry.xpath_node("default:updated", namespaces).not_nil!.content)
-        ucid = entry.xpath_node("yt:channelId", namespaces).not_nil!.content
-        title = entry.xpath_node("default:title", namespaces).not_nil!.content
 
-        if CONFIG.use_innertube_for_feeds
-          begin
-            video_ = get_video(id, force_refresh: true)
-          rescue
-            next # skip this video since it raised an exception (e.g. it is a scheduled live event)
-          end
+        begin
+          video = get_video(id, force_refresh: true)
+        rescue
+          next # skip this video since it raised an exception (e.g. it is a scheduled live event)
         end
 
         video = ChannelVideo.new({
           id:                 id,
-          title:              title,
+          title:              video.title,
           published:          published,
           updated:            updated,
-          ucid:               ucid,
+          ucid:               video.ucid,
           author:             author,
-          length_seconds:     video_.try &.length_seconds || 0,
-          live_now:           video_.try &.live_now || false,
-          premiere_timestamp: video_.try &.premiere_timestamp || nil,
-          views:              video_.try &.views || nil,
+          length_seconds:     video.length_seconds,
+          live_now:           video.live_now,
+          premiere_timestamp: video.premiere_timestamp,
+          views:              video.views,
         })
 
         was_insert = Invidious::Database::ChannelVideos.insert(video, with_premiere_timestamp: true)

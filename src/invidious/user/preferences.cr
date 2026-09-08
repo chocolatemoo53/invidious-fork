@@ -43,6 +43,7 @@ struct Preferences
   property quality : String = CONFIG.default_user_preferences.quality
   @[JSON::Field(converter: Preferences::ProcessString)]
   property quality_dash : String = CONFIG.default_user_preferences.quality_dash
+  property codec_dash : String = CONFIG.default_user_preferences.codec_dash
   property default_home : String? = CONFIG.default_user_preferences.default_home
   property feed_menu : Array(String) = CONFIG.default_user_preferences.feed_menu
   property related_videos : Bool = CONFIG.default_user_preferences.related_videos
@@ -56,12 +57,8 @@ struct Preferences
   property extend_desc : Bool = CONFIG.default_user_preferences.extend_desc
   property volume : Int32 = CONFIG.default_user_preferences.volume
   property save_player_pos : Bool = CONFIG.default_user_preferences.save_player_pos
-  property hidden_channels : Array(String)? = nil
-  property default_trending_type : Invidious::Routes::Feeds::TrendingTypes = Invidious::Routes::Feeds::TrendingTypes::Default
   property default_playlist : String? = nil
   property search_privacy : Bool = CONFIG.default_user_preferences.search_privacy
-  property show_community_backends : Bool = false
-  property current_companion : Int32? = nil
 
   module BoolToString
     def self.to_json(value : String, json : JSON::Builder)

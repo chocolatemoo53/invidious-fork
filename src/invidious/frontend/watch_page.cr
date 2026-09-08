@@ -18,7 +18,7 @@ module Invidious::Frontend::WatchPage
     end
   end
 
-  def download_widget(locale : String, video : Video, video_assets : VideoAssets, env : HTTP::Server::Context) : String
+  def download_widget(locale : String, video : Video, video_assets : VideoAssets) : String
     if CONFIG.disabled?("downloads")
       return "<p id=\"download\">#{I18n.translate(locale, "Download is disabled")}</p>"
     end
@@ -29,8 +29,7 @@ module Invidious::Frontend::WatchPage
 
     url = "/download"
     if (CONFIG.invidious_companion.present?)
-      current_companion = env.get("current_companion").as(Int32)
-      invidious_companion = CONFIG.invidious_companion[current_companion]
+      invidious_companion = CONFIG.invidious_companion.sample
       url = "#{invidious_companion.public_url}/download?check=#{invidious_companion_encrypt(video.id)}"
     end
 
@@ -57,31 +56,28 @@ module Invidious::Frontend::WatchPage
 
       # Non-DASH videos (audio+video)
 
-      if !CONFIG.disable_video_downloads
-        video_assets.full_videos.each do |option|
-          mimetype = option["mimeType"].as_s.split(";")[0]
+      video_assets.full_videos.each do |option|
+        mimetype = option["mimeType"].as_s.split(";")[0]
 
-          height = Invidious::Videos::Formats.itag_to_metadata?(option["itag"]).try &.["height"]?
+        height = Invidious::Videos::Formats.itag_to_metadata?(option["itag"]).try &.["height"]?
 
-          value = {"itag": option["itag"], "ext": mimetype.split("/")[1]}.to_json
+        value = {"itag": option["itag"], "ext": mimetype.split("/")[1]}.to_json
 
-          str << "\t\t\t<option value='" << value << "'>"
-          str << (height || "~240") << "p - " << mimetype
-          str << "</option>\n"
-        end
+        str << "\t\t\t<option value='" << value << "'>"
+        str << (height || "~240") << "p - " << mimetype
+        str << "</option>\n"
       end
+
       # DASH video streams
 
-      if !CONFIG.disable_video_downloads
-        video_assets.video_streams.each do |option|
-          mimetype = option["mimeType"].as_s.split(";")[0]
+      video_assets.video_streams.each do |option|
+        mimetype = option["mimeType"].as_s.split(";")[0]
 
-          value = {"itag": option["itag"], "ext": mimetype.split("/")[1]}.to_json
+        value = {"itag": option["itag"], "ext": mimetype.split("/")[1]}.to_json
 
-          str << "\t\t\t<option value='" << value << "'>"
-          str << option["qualityLabel"] << " - " << mimetype << " @ " << option["fps"] << "fps - video only"
-          str << "</option>\n"
-        end
+        str << "\t\t\t<option value='" << value << "'>"
+        str << option["qualityLabel"] << " - " << mimetype << " @ " << option["fps"] << "fps - video only"
+        str << "</option>\n"
       end
 
       # DASH audio streams

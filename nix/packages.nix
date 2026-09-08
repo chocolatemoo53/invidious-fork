@@ -1,7 +1,4 @@
-{
-  pkgs,
-  pkgsFijxu ? pkgs,
-}:
+{ pkgs }:
 
 # Development packages, this makes Crystal 1.19 (latest available in nixpkgs)
 # and sqlite available in a `nix-shell` or `nix develop` build environment.
@@ -20,7 +17,7 @@
 with pkgs;
 [
   # Invidious dependencies
-  pkgsFijxu.crystal
+  crystal_1_19
   sqlite
   shards
   crystalline # LSP, is not that good, but still useful.

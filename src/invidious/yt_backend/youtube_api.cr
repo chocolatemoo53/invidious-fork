@@ -460,14 +460,14 @@ module YoutubeAPI
   #
   # The requested data is a video ID (`v=` parameter).
   #
-  def player(video_id : String, env : HTTP::Server::Context | Nil)
+  def player(video_id : String)
     # JSON Request data, required by Invidious Companion
     data = {
       "videoId" => video_id,
     }
 
     if CONFIG.invidious_companion.present?
-      return self._post_invidious_companion("/youtubei/v1/player", data, env)
+      return self._post_invidious_companion("/youtubei/v1/player", data)
     else
       return nil
     end
@@ -644,7 +644,6 @@ module YoutubeAPI
   def _post_invidious_companion(
     endpoint : String,
     data : Hash,
-    env : HTTP::Server::Context | Nil,
   ) : Hash(String, JSON::Any)
     headers = HTTP::Headers{
       "Content-Type"  => "application/json; charset=UTF-8",
@@ -658,23 +657,13 @@ module YoutubeAPI
     # Send the POST request
 
     begin
-      if companion_status = COMPANION_STATUS
-        if env.nil?
-          working_ends = companion_status.working_companions.community
-          current_companion = working_ends.sample
-        else
-          current_companion = env.get("current_companion").as(Int32)
-        end
-      end
       response_body = Hash(String, JSON::Any).new
 
-      if current_companion
-        COMPANION_POOL[current_companion].client do |wrapper|
-          companion_base_url = wrapper.companion.private_url.path
+      COMPANION_POOL.client do |wrapper|
+        companion_base_url = wrapper.companion.private_url.path
 
-          wrapper.client.post("#{companion_base_url}#{endpoint}", headers: headers, body: data.to_json) do |response|
-            response_body = JSON.parse(response.body_io).as_h
-          end
+        wrapper.client.post("#{companion_base_url}#{endpoint}", headers: headers, body: data.to_json) do |response|
+          response_body = JSON.parse(response.body_io).as_h
         end
       end
 
@@ -702,7 +691,7 @@ module YoutubeAPI
       # Multiple encodings can be combined, and are listed in the order
       # in which they were applied. E.g: "deflate, gzip" means that the
       # content must be first "gunzipped", then "defated".
-      encodings.split(',').reverse!.each do |enc|
+      encodings.split(',').reverse.each do |enc|
         case enc.strip(' ')
         when "gzip"
           body_io = Compress::Gzip::Reader.new(body_io, sync_close: true)

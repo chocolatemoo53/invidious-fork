@@ -7,14 +7,7 @@ STATIC   := 0
 
 NO_DBG_SYMBOLS := 0
 
-# Enable multi-threading.
-# Warning: Experimental feature!!
-# invidious is not stable when MT is enabled.
-MT := 0
-
-
 FLAGS ?=
-
 
 ifeq ($(RELEASE), 1)
   FLAGS += --release
@@ -46,7 +39,7 @@ get-libs:
 
 # TODO: add support for ARM64 via cross-compilation
 invidious: get-libs
-	crystal build src/invidious.cr $(FLAGS) --progress --stats --error-trace --mcpu=x86-64-v3
+	crystal build src/invidious.cr $(FLAGS) --progress --stats --error-trace
 
 
 run: invidious

@@ -1,33 +1,29 @@
 <% ucid = video.ucid %>
 <% title = HTML.escape(video.title) %>
 <% author = HTML.escape(video.author) %>
-<% host = env.request.headers["Host"] %>
-<% scheme = env.get("scheme") %>
 
 
 <% content_for "header" do %>
-<meta name="thumbnail" content="<%= scheme %>://<%= host %><%= thumbnail %>">
+<meta name="thumbnail" content="<%= thumbnail %>">
 <meta name="description" content="<%= HTML.escape(video.short_description) %>">
 <meta name="keywords" content="<%= video.keywords.join(",") %>">
 <meta property="og:site_name" content="<%= author %> | Invidious">
-<meta property="og:url" content="<%= scheme %>://<%= host %>/watch?v=<%= video.id %>">
+<meta property="og:url" content="<%= HOST_URL %>/watch?v=<%= video.id %>">
 <meta property="og:title" content="<%= title %>">
-<meta property="og:image" content="<%= scheme %>://<%= host %>/vi/<%= video.id %>/maxres.jpg">
+<meta property="og:image" content="<%= HOST_URL %>/vi/<%= video.id %>/maxres.jpg">
 <meta property="og:description" content="<%= HTML.escape(video.short_description) %>">
 <meta property="og:type" content="video.other">
-<!-- This shouldn't be empty, ever. -->
-<meta property="og:video" content="<%= video_url %>">
-<meta property="og:video:url" content="<%= video_url %>">
-<meta property="og:video:secure_url" content="<%= video_url %>">
-<meta property="og:video:type" content="video/mp4">
-<meta property="og:video:width" content="640">
-<meta property="og:video:height" content="360">
+<meta property="og:video:url" content="<%= HOST_URL %>/embed/<%= video.id %>">
+<meta property="og:video:secure_url" content="<%= HOST_URL %>/embed/<%= video.id %>">
+<meta property="og:video:type" content="text/html">
+<meta property="og:video:width" content="1280">
+<meta property="og:video:height" content="720">
 <meta name="twitter:card" content="player">
-<meta name="twitter:url" content="<%= scheme %>://<%= host %>/watch?v=<%= video.id %>">
+<meta name="twitter:url" content="<%= HOST_URL %>/watch?v=<%= video.id %>">
 <meta name="twitter:title" content="<%= title %>">
 <meta name="twitter:description" content="<%= HTML.escape(video.short_description) %>">
-<meta name="twitter:image" content="<%= scheme %>://<%= host %>/vi/<%= video.id %>/maxres.jpg">
-<meta name="twitter:player" content="<%= scheme %>://<%= host %>/embed/<%= video.id %>">
+<meta name="twitter:image" content="<%= HOST_URL %>/vi/<%= video.id %>/maxres.jpg">
+<meta name="twitter:player" content="<%= HOST_URL %>/embed/<%= video.id %>">
 <meta name="twitter:player:width" content="1280">
 <meta name="twitter:player:height" content="720">
 <link rel="alternate" href="https://www.youtube.com/watch?v=<%= video.id %>">
@@ -68,8 +64,6 @@ we're going to need to do it here in order to allow for translations.
     "comments_youtube_disabled_try_reddit" => HTML.escape(I18n.translate(locale, "comments_youtube_disabled_try_reddit")),
     "reddit_comments_text" => HTML.escape(I18n.translate(locale, "View Reddit comments")),
     "reddit_permalink_text" => HTML.escape(I18n.translate(locale, "View more comments on Reddit")),
-    "comments_youtube_disabled_text" => HTML.escape(I18n.translate(locale, "comments_youtube_disabled_text")),
-    "comments_youtube_disabled_try_reddit" => HTML.escape(I18n.translate(locale, "comments_youtube_disabled_try_reddit")),
     "comments_text" => HTML.escape(I18n.translate(locale, "View `x` comments", "{commentCount}")),
     "hide_replies_text" => HTML.escape(I18n.translate(locale, "Hide replies")),
     "show_replies_text" => HTML.escape(I18n.translate(locale, "Show replies")),
@@ -150,20 +144,6 @@ we're going to need to do it here in order to allow for translations.
                 (<a id="link-yt-embed" referrerpolicy="origin-when-cross-origin" rel="noopener" data-base-url="<%= link_yt_embed %>" href="<%= link_yt_embed %>"><%= I18n.translate(locale, "videoinfo_youTube_embed_link") %></a>)
             </span>
 
-		<% if CONFIG.materialious_domain %>
-            <p id="watch-on-materialious">
-                <%-
-                    link_materialious_watch = URI.new(scheme: "https", host: "#{CONFIG.materialious_domain}", path: "/watch", query: "v=#{video.id}")
-
-                    if !plid.nil? && !continuation.nil?
-                        link_materialious_param = URI::Params{"list" => [plid], "index" => [continuation.to_s]}
-                        link_materialious_watch = IV::HttpServer::Utils.add_params_to_url(link_materialious_watch, link_materialious_param)
-                    end
-                -%>
-                <a id="link-materialious-watch" data-base-url="<%= link_materialious_watch %>" href="<%= link_materialious_watch %>"><%= I18n.translate(locale, "videoinfo_watch_on_materialious") %></a>
-            </p>
-		<% end %>
-
             <p id="watch-on-another-invidious-instance">
                 <%- link_iv_other = IV::Frontend::Misc.redirect_url(env) -%>
                 <a id="link-iv-other" data-base-url="<%= link_iv_other %>" href="<%= link_iv_other %>"><%= I18n.translate(locale, "Switch Invidious Instance") %></a>
@@ -218,24 +198,22 @@ we're going to need to do it here in order to allow for translations.
                     }.to_pretty_json
                     %>
                     </script>
-                    <script src="/<%= JS_PATH %>/playlist_widget.js?v=<%= Time.utc.to_unix_ms %>"></script>
+                    <script src="/js/playlist_widget.js?v=<%= Time.utc.to_unix_ms %>"></script>
                 <% end %>
             <% end %>
 
-            <%= Invidious::Frontend::WatchPage.download_widget(locale, video, video_assets, env) %>
+            <%= Invidious::Frontend::WatchPage.download_widget(locale, video, video_assets) %>
 
             <p id="views"><i class="icon ion-ios-eye"></i> <%= number_with_separator(video.views) %></p>
             <p id="likes"><i class="icon ion-ios-thumbs-up"></i> <%= number_with_separator(video.likes) %></p>
             <p id="dislikes" style="display: none; visibility: hidden;"></p>
-            <% if !video.genre.nil? && !video.genre.empty? %>
-                <p id="genre"><%= I18n.translate(locale, "Genre: ") %>
-                    <% if !video.genre_url %>
-                        <%= video.genre %>
-                    <% else %>
-                        <a href="<%= video.genre_url %>"><%= video.genre %></a>
-                    <% end %>
-                </p>
-            <% end %>
+            <p id="genre"><%= I18n.translate(locale, "Genre: ") %>
+                <% if !video.genre_url %>
+                    <%= video.genre %>
+                <% else %>
+                    <a href="<%= video.genre_url %>"><%= video.genre %></a>
+                <% end %>
+            </p>
             <% if video.license %>
                 <% if video.license.empty? %>
                     <p id="license"><%= I18n.translate(locale, "License: ") %><%= I18n.translate(locale, "Standard YouTube license") %></p>
@@ -247,16 +225,14 @@ we're going to need to do it here in order to allow for translations.
             <p id="wilson" style="display: none; visibility: hidden;"></p>
             <p id="rating" style="display: none; visibility: hidden;"></p>
             <p id="engagement" style="display: none; visibility: hidden;"></p>
-            <% if !video.allowed_regions.nil? && !video.allowed_regions.empty? %>
-                <% if video.allowed_regions.size != REGIONS.size %>
-                    <p id="allowed_regions">
-                        <% if video.allowed_regions.size < REGIONS.size // 2 %>
-                            <%= I18n.translate(locale, "Whitelisted regions: ") %><%= video.allowed_regions.join(", ") %>
-                        <% else %>
-                            <%= I18n.translate(locale, "Blacklisted regions: ") %><%= (REGIONS.to_a - video.allowed_regions).join(", ") %>
-                        <% end %>
-                    </p>
-                <% end %>
+            <% if video.allowed_regions.size != REGIONS.size %>
+                <p id="allowed_regions">
+                    <% if video.allowed_regions.size < REGIONS.size // 2 %>
+                        <%= I18n.translate(locale, "Whitelisted regions: ") %><%= video.allowed_regions.join(", ") %>
+                    <% else %>
+                        <%= I18n.translate(locale, "Blacklisted regions: ") %><%= (REGIONS.to_a - video.allowed_regions).join(", ") %>
+                    <% end %>
+                </p>
             <% end %>
         </div>
     </div>
@@ -294,14 +270,10 @@ we're going to need to do it here in order to allow for translations.
 
             <div id="description-box"> <!-- Description -->
                 <% if video.description.size < 200 || params.extend_desc %>
-                    <div id="descriptionWrapper"><%= video.description_html %>
-                        <%= rendered "components/description_toggle_transcripts_widget" %>
-                    </div>
+                    <div id="descriptionWrapper"><%= video.description_html %></div>
                 <% else %>
                     <input id="descexpansionbutton" type="checkbox"/>
-                    <div id="descriptionWrapper"><%-= video.description_html %>
-                        <%= rendered "components/description_toggle_transcripts_widget" %>
-                    </div>
+                    <div id="descriptionWrapper"><%= video.description_html %></div>
                     <label for="descexpansionbutton">
                         <a></a>
                     </label>
@@ -335,7 +307,7 @@ we're going to need to do it here in order to allow for translations.
             <div id="comments" class="comments">
                 <% if (params.comments <=> ["", ""]) == 0 %>
                     <div id="comments-disabled-message" class="h-box v-box">
-                        <p><b><%=HTML.escape(I18n.translate(locale, "comments_invidious_disabled_text"))%></b></p>
+                        <p><b><%= HTML.escape(I18n.translate(locale, "comments_invidious_disabled_text")) %></b></p>
                     </div>
                 <% else %>
                     <% if video.comments? %>
@@ -351,9 +323,9 @@ we're going to need to do it here in order to allow for translations.
                     <% else %>
                         <% if !nojs %>
                             <div id="comments-turned-off-on-video-message" class="h-box v-box">
-                                <p><b><%=HTML.escape(I18n.translate(locale, "comments_youtube_disabled_text"))%></b></p>
+                                <p><b><%= HTML.escape(I18n.translate(locale, "comments_youtube_disabled_text")) %></b></p>
                                 <p><b><button data-comments="reddit" id="try-reddit-comments-link" class="simulated_a">
-                                    <%=HTML.escape(I18n.translate(locale, "comments_youtube_disabled_try_reddit"))%>
+                                    <%= HTML.escape(I18n.translate(locale, "comments_youtube_disabled_try_reddit")) %>
                                 </button></b></p>
                             </div>
                         <% end %>
@@ -363,7 +335,7 @@ we're going to need to do it here in order to allow for translations.
                                 <%= comment_html %>
                             <% else %>
                                 <a href="/watch?<%= env.params.query %>&nojs=1">
-                                    <%= I18n.translate(locale, "comments_youtube_disabled_try_reddit_no_js") %>
+                                    <%= HTML.escape(I18n.translate(locale, "comments_youtube_disabled_try_reddit_no_js")) %>
                                 </a>
                             <% end %>
                         </noscript>
@@ -375,10 +347,6 @@ we're going to need to do it here in order to allow for translations.
 
     <% if params.related_videos || plid %>
         <div class="pure-u-1 pure-u-lg-1-5">
-            <% if transcript %>
-                <%= rendered "components/no-js-transcript-ui" %>
-            <% end %>
-
             <% if plid %>
                 <div id="playlist" class="h-box"></div>
             <% end %>
@@ -444,5 +412,5 @@ we're going to need to do it here in order to allow for translations.
         </div>
     <% end %>
 </div>
-<script src="/<%= JS_PATH %>/comments.js?v=<%= ASSET_COMMIT %>"></script>
-<script src="/<%= JS_PATH %>/watch.js?v=<%= ASSET_COMMIT %>"></script>
+<script src="/js/comments.js?v=<%= ASSET_COMMIT %>"></script>
+<script src="/js/watch.js?v=<%= ASSET_COMMIT %>"></script>

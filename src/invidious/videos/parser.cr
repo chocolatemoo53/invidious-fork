@@ -55,9 +55,9 @@ module Invidious::Videos::Parser
     }
   end
 
-  def extract_video_info(video_id : String, env : HTTP::Server::Context | Nil = nil)
+  def extract_video_info(video_id : String)
     # Fetch data from the player endpoint
-    player_response = YoutubeAPI.player(video_id: video_id, env: env)
+    player_response = YoutubeAPI.player(video_id: video_id)
 
     if player_response.nil?
       return nil
@@ -134,9 +134,9 @@ module Invidious::Videos::Parser
     return params
   end
 
-  def try_fetch_streaming_data(id : String, client_config : YoutubeAPI::ClientConfig, env : HTTP::Server::Context | Nil = nil) : Hash(String, JSON::Any)?
+  def try_fetch_streaming_data(id : String, client_config : YoutubeAPI::ClientConfig) : Hash(String, JSON::Any)?
     LOGGER.debug("try_fetch_streaming_data: [#{id}] Using #{client_config.client_type} client.")
-    response = YoutubeAPI.player(video_id: id, env: env)
+    response = YoutubeAPI.player(video_id: id)
 
     playability_status = response["playabilityStatus"]["status"]
     LOGGER.debug("try_fetch_streaming_data: [#{id}] Got playabilityStatus == #{playability_status}.")
@@ -287,19 +287,6 @@ module Invidious::Videos::Parser
         .find(&.dig?("toggleButtonRenderer", "defaultIcon", "iconType").=== "LIKE")
         .try &.["toggleButtonRenderer"]
 
-      # Comments enabled?
-      comments_enabled = false
-
-      # When comments are enabled there should be a comment-item-section section in the primary results
-      if primary_results
-        section = primary_results.as_a.find(&.dig?("itemSectionRenderer", "targetId").== "comments-section")
-
-        if section
-          comments_enabled = true
-        end
-      end
-
-      # Return data
       # New format as of september 2022
       likes_button ||= toplevel_buttons.try &.as_a
         .find(&.["segmentedLikeDislikeButtonRenderer"]?)
@@ -467,7 +454,6 @@ module Invidious::Videos::Parser
       "authorThumbnail" => JSON::Any.new(author_thumbnail.try &.as_s || ""),
       "authorVerified"  => JSON::Any.new(author_verified || false),
       "subCountText"    => JSON::Any.new(subs_text || "-"),
-      "commentsEnabled" => JSON::Any.new(comments_enabled),
     }
 
     return params

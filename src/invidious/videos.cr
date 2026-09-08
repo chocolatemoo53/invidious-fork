@@ -193,10 +193,6 @@ struct Video
     }
   end
 
-  def invidious_companion : Hash(String, JSON::Any)?
-    info["invidiousCompanion"]?.try &.as_h || {} of String => JSON::Any
-  end
-
   # Returns true if comments are enabled on the video
   def comments?
     return info["commentsEnabled"].as_bool
@@ -304,25 +300,25 @@ struct Video
   predicate_bool upcoming, isUpcoming
 end
 
-def get_video(id, refresh = true, region = nil, force_refresh = false, env : HTTP::Server::Context | Nil = nil)
+def get_video(id, refresh = true, region = nil, force_refresh = false)
   if (video = Invidious::Database::Videos.select(id)) && !region
     # If record was last updated over 10 minutes ago, or video has since premiered,
     # refresh (expire param in response lasts for 6 hours)
     if (refresh &&
-       (Time.utc - video.updated > 21420.seconds) ||
+       (Time.utc - video.updated > 10.minutes) ||
        (video.premiere_timestamp.try &.< Time.utc)) ||
        force_refresh ||
        video.schema_version != Video::SCHEMA_VERSION # cache control
       begin
-        video = fetch_video(id, region, env)
-        Invidious::Database::Videos.insert(video)
+        video = fetch_video(id, region)
+        Invidious::Database::Videos.update(video)
       rescue ex
         Invidious::Database::Videos.delete(id)
         raise ex
       end
     end
   else
-    video = fetch_video(id, region, env)
+    video = fetch_video(id, region)
     Invidious::Database::Videos.insert(video) if !region
   end
 
@@ -330,11 +326,11 @@ def get_video(id, refresh = true, region = nil, force_refresh = false, env : HTT
 rescue DB::Error
   # Avoid common `DB::PoolRetryAttemptsExceeded` error and friends
   # Note: All DB errors inherit from `DB::Error`
-  return fetch_video(id, region, env)
+  return fetch_video(id, region)
 end
 
-def fetch_video(id, region, env)
-  info = Invidious::Videos::Parser.extract_video_info(video_id: id, env: env)
+def fetch_video(id, region)
+  info = Invidious::Videos::Parser.extract_video_info(video_id: id)
 
   if info.nil?
     raise InfoException.new("Invidious companion is not available. \

@@ -6,16 +6,6 @@ module Invidious::Routes::VideoPlayback
     locale = env.get("preferences").as(Preferences).locale
     query_params = env.params.query
 
-    if query_params["enc"]? == "yes"
-      query_params = URI::Params.parse(video_playback_decrypt(query_params["data"]))
-    end
-
-    array = UInt8[0x78, 0]
-    protobuf = Bytes.new(array.size)
-    array.each_with_index do |byte, index|
-      protobuf[index] = byte
-    end
-
     fvip = query_params["fvip"]? || "3"
     mns = query_params["mn"]?.try &.split(",")
     mns ||= [] of String
@@ -109,7 +99,7 @@ module Invidious::Routes::VideoPlayback
       end
 
       begin
-        client.post(url, headers, protobuf) do |resp|
+        client.get(url, headers) do |resp|
           resp.headers.each do |key, value|
             if !RESPONSE_HEADERS_BLACKLIST.includes?(key.downcase)
               env.response.headers[key] = value
@@ -160,7 +150,7 @@ module Invidious::Routes::VideoPlayback
         headers["Range"] = "bytes=#{chunk_start}-#{chunk_end}"
 
         begin
-          client.post(url, headers, protobuf) do |resp|
+          client.get(url, headers) do |resp|
             if first_chunk
               if !env.request.headers["Range"]? && resp.status_code == 206
                 env.response.status_code = 200
@@ -270,8 +260,8 @@ module Invidious::Routes::VideoPlayback
   # so we have a mechanism here to redirect to the latest version
   def self.latest_version(env)
     if CONFIG.invidious_companion.present?
-      companion_public_url = env.get("companion_companion_public_url").as(String)
-      return env.redirect "#{companion_public_url}/latest_version?#{env.params.query}"
+      invidious_companion = CONFIG.invidious_companion.sample
+      return env.redirect "#{invidious_companion.public_url}/latest_version?#{env.params.query}"
     end
 
     id = env.params.query["id"]?

@@ -104,13 +104,11 @@ dependencies_to_install.each do |dep|
     dep = "video" if dep == "video.js"
 
     # This dep nests everything under an additional JS or CSS folder
-    if dep == "silvermine-videojs-quality-selector" || dep == "videojs-contrib-quality-menu"
+    if dep == "silvermine-videojs-quality-selector"
       js_path = "js/"
 
       # It also stores their quality selector as `quality-selector.css`
-      if dep == "silvermine-videojs-quality-selector"
-        `mv #{download_path}/package/dist/css/quality-selector.css #{dest_path}/quality-selector.css`
-      end
+      `mv #{download_path}/package/dist/css/quality-selector.css #{dest_path}/quality-selector.css`
     else
       js_path = ""
     end

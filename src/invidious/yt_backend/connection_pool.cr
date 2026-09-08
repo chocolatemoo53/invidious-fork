@@ -13,7 +13,7 @@ struct YoutubeConnectionPool
     @pool = build_pool()
   end
 
-  def client(env : HTTP::Server::Context? = nil, headers_to_duplicate : Array(String)? = nil, &)
+  def client(&)
     conn = pool.checkout
     # Proxy needs to be reinstated every time we get a client from the pool
     configure_proxy(conn) if CONFIG.http_proxy
@@ -27,20 +27,6 @@ struct YoutubeConnectionPool
       response = yield conn
     ensure
       pool.release(conn)
-    end
-
-    # Shit way do not use do not replicate this is horrible because how blocks work
-    if env && headers_to_duplicate
-      if response.is_a?(HTTP::Client::Response)
-        youtube_response_headers = response.headers
-        if youtube_response_headers
-          headers_to_duplicate.each do |header|
-            if header_value = youtube_response_headers[header]?
-              env.response.headers[header] = header_value
-            end
-          end
-        end
-      end
     end
 
     response
@@ -79,11 +65,10 @@ struct CompanionWrapper
   end
 end
 
-class CompanionConnectionPool
+struct CompanionConnectionPool
   property pool : DB::Pool(CompanionWrapper)
-  property companion : Config::CompanionConfig
 
-  def initialize(@companion, capacity = 5, timeout = 5.0)
+  def initialize(capacity = 5, timeout = 5.0)
     options = DB::Pool::Options.new(
       initial_pool_size: 0,
       max_pool_size: capacity,
@@ -92,8 +77,9 @@ class CompanionConnectionPool
     )
 
     @pool = DB::Pool(CompanionWrapper).new(options) do
-      make_client(@companion.private_url, use_http_proxy: false)
-      CompanionWrapper.new(companion: @companion)
+      companion = CONFIG.invidious_companion.sample
+      make_client(companion.private_url, use_http_proxy: false)
+      CompanionWrapper.new(companion: companion)
     end
   end
 
@@ -105,8 +91,9 @@ class CompanionConnectionPool
     rescue ex
       wrapper.close
 
-      make_client(@companion.private_url, use_http_proxy: false)
-      wrapper = CompanionWrapper.new(companion: @companion)
+      companion = CONFIG.invidious_companion.sample
+      make_client(companion.private_url, use_http_proxy: false)
+      wrapper = CompanionWrapper.new(companion: companion)
 
       response = yield wrapper
     ensure

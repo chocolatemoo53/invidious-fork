@@ -226,7 +226,7 @@ module Invidious::Routes::API::V1::Authenticated
     end
 
     playlist = create_playlist(title, privacy, user)
-    env.response.headers["Location"] = "#{env.request.headers["Host"]}/api/v1/auth/playlists/#{playlist.id}"
+    env.response.headers["Location"] = "#{HOST_URL}/api/v1/auth/playlists/#{playlist.id}"
     env.response.status_code = 201
     {
       "title"      => title,
@@ -482,7 +482,7 @@ module Invidious::Routes::API::V1::Authenticated
     env.response.content_type = "text/event-stream"
 
     raw_topics = env.params.body["topics"]? || env.params.query["topics"]?
-    topics = raw_topics.try &.split(",").uniq!.first(1000)
+    topics = raw_topics.try &.split(",").uniq.first(1000)
     topics ||= [] of String
 
     Helpers.create_notification_stream(env, topics, CONNECTION_CHANNEL)

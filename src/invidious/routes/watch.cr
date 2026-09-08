@@ -39,14 +39,6 @@ module Invidious::Routes::Watch
     nojs ||= "0"
     nojs = nojs == "1"
 
-    show_transcripts = env.params.query["show_transcripts"]?
-
-    show_transcripts ||= "0"
-    show_transcripts = show_transcripts == "1"
-
-    # Equal to a `caption.name` when set
-    selected_transcript = env.params.query["use_this_transcript"]?
-
     user = env.get?("user").try &.as(User)
     if user
       subscriptions = user.subscriptions
@@ -59,17 +51,13 @@ module Invidious::Routes::Watch
     env.params.query.delete_all("listen")
 
     begin
-      video = get_video(id, region: params.region, env: env)
+      video = get_video(id, region: params.region)
     rescue ex : NotFoundException
       LOGGER.error("get_video not found: #{id} : #{ex.message}")
       return error_template(404, ex)
     rescue ex
       LOGGER.error("get_video: #{id} : #{ex.message}")
       return error_template(500, ex)
-    end
-
-    if video.live_now && CONFIG.disable_livestreams
-      return error_template(403, "Livestreams are disabled as they are not working with invidious-companion right now. Please wait until an update comes out!")
     end
 
     if preferences.annotations_subscribed &&
@@ -132,26 +120,15 @@ module Invidious::Routes::Watch
     fmt_stream = video.fmt_stream
     adaptive_fmts = video.adaptive_fmts
 
-    # Removes all the resolutions with a height higher than CONFIG.max_dash_resolution
-    if CONFIG.max_dash_resolution
-      adaptive_fmts.reject! do |z|
-        (z["height"].as_i > CONFIG.max_dash_resolution.not_nil!) if z["height"]?
-      end
-    end
-
     if params.local
       fmt_stream.each { |fmt| fmt["url"] = JSON::Any.new(HttpServer::Utils.proxy_video_url(fmt["url"].as_s)) }
     end
 
+    # Always proxy DASH streams, otherwise youtube CORS headers will prevent playback
+    adaptive_fmts.each { |fmt| fmt["url"] = JSON::Any.new(HttpServer::Utils.proxy_video_url(fmt["url"].as_s)) }
+
     video_streams = video.video_streams
     audio_streams = video.audio_streams
-
-    # Removes all the resolutions with a height higher than CONFIG.max_dash_resolution
-    if CONFIG.max_dash_resolution
-      video_streams.reject! do |z|
-        (z["height"].as_i > CONFIG.max_dash_resolution.not_nil!) if z["height"]?
-      end
-    end
 
     # Videos that are a premiere do not have audio streams.
     if video.premiere_timestamp.nil?
@@ -181,60 +158,6 @@ module Invidious::Routes::Watch
         params.preferred_captions.index(caption.language_code.split("-")[0])).not_nil!
     }
     captions = captions - preferred_captions
-
-    if show_transcripts
-      # Transcripts can be mapped 1:1 to a video's captions.
-      # As such the amount of transcripts available is the same as the amount of captions available.
-      #
-      # To request transcripts we have to give a language code, and a boolean dictating whether or not
-      # it is auto-generated. These attributes can be retrieved from the video's caption metadata.
-
-      # First we check if a transcript has been explicitly selected.
-      # The `use_this_transcript` url parameter provides the label of the transcript the user wants.
-      if selected_transcript
-        selected_transcript = URI.decode_www_form(selected_transcript)
-        target_transcript = captions.select(&.name.== selected_transcript)
-      else
-        target_transcript = nil
-      end
-
-      # If the selected transcript has a match then we'll request that.
-      #
-      # If it does not match we'll try and request a transcript based on the user's
-      # preferred transcript
-      #
-      # If that also does not match then we'll just select the first transcript
-      # out of everything that's available.
-      #
-      # Raises when no matches are found
-      if target_transcript.is_a?(Array) && !target_transcript.empty?
-        target_transcript = target_transcript[0]
-      else
-        if !preferred_captions.empty?
-          target_transcript = preferred_captions[0]
-        elsif !captions.empty?
-          target_transcript = captions[0]
-        else
-          return error_template(404, "error_transcripts_none_available")
-        end
-      end
-
-      transcript_request_param = Invidious::Videos::Transcript.generate_param(
-        id, target_transcript.language_code, target_transcript.auto_generated
-      )
-
-      begin
-        transcript = Invidious::Videos::Transcript.from_raw(
-          YoutubeAPI.get_transcript(transcript_request_param, client_config: YoutubeAPI::ANDROID_CLIENT_CONFIG),
-          target_transcript.language_code,
-          target_transcript.auto_generated,
-        )
-      rescue NotFoundException
-        return error_template(404, "error_transcripts_none_available")
-      end
-    else
-      transcript = nil
-    end
 
     aspect_ratio = "16:9"
 
@@ -272,15 +195,8 @@ module Invidious::Routes::Watch
       captions: video.captions
     )
 
-    begin
-      video_url = fmt_stream[0]["url"].to_s
-    rescue
-      video_url = nil
-    end
-
     if CONFIG.invidious_companion.present?
-      current_companion = env.get("current_companion").as(Int32)
-      invidious_companion = CONFIG.invidious_companion[current_companion]
+      invidious_companion = CONFIG.invidious_companion.sample
     end
 
     templated "watch"
@@ -377,9 +293,7 @@ module Invidious::Routes::Watch
       return error_template(403, "Administrator has disabled this endpoint.")
     end
     if CONFIG.invidious_companion.present?
-      current_companion = env.get("current_companion").as(Int32)
-      invidious_companion = CONFIG.invidious_companion[current_companion]
-      return env.redirect invidious_companion.public_url
+      return error_template(403, "Downloads should be routed through Companion when present")
     end
 
     title = env.params.body["title"]? || ""
