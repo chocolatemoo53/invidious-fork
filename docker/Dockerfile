@@ -1,4 +1,4 @@
-FROM git.nadeko.net/fijxu/84codes-crystal-openssl:1.21.0 AS dependabot-crystal
+FROM --platform=linux/amd64 git.nadeko.net/fijxu/84codes-crystal-openssl:1.21.0 AS dependabot-crystal
 
 FROM dependabot-crystal AS builder
 
