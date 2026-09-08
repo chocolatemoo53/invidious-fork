@@ -1,0 +1,424 @@
+{% skip_file if flag?(:api_only) %}
+
+module Invidious::Routes::Watch
+  def self.handle(env)
+    preferences = env.get("preferences").as(Preferences)
+    locale = preferences.locale
+    region = env.params.query["region"]?
+
+    if env.params.query.to_s.includes?("%20") || env.params.query.to_s.includes?("+")
+      url = "/watch?" + env.params.query.to_s.gsub("%20", "").delete("+")
+      return env.redirect url
+    end
+
+    if env.params.query["v"]?
+      id = env.params.query["v"]
+
+      if env.params.query["v"].empty?
+        return error_template(400, "Invalid parameters.")
+      end
+
+      if id.size > 11
+        url = "/watch?v=#{id[0, 11]}"
+        env.params.query.delete_all("v")
+        if env.params.query.size > 0
+          url += "&#{env.params.query}"
+        end
+
+        return env.redirect url
+      end
+    else
+      return env.redirect "/"
+    end
+
+    plid = env.params.query["list"]?.try &.gsub(/[^a-zA-Z0-9_-]/, "")
+    continuation = process_continuation(env.params.query, plid, id)
+
+    nojs = env.params.query["nojs"]?
+
+    nojs ||= "0"
+    nojs = nojs == "1"
+
+    show_transcripts = env.params.query["show_transcripts"]?
+
+    show_transcripts ||= "0"
+    show_transcripts = show_transcripts == "1"
+
+    # Equal to a `caption.name` when set
+    selected_transcript = env.params.query["use_this_transcript"]?
+
+    user = env.get?("user").try &.as(User)
+    if user
+      subscriptions = user.subscriptions
+      watched = user.watched
+      notifications = user.notifications
+    end
+    subscriptions ||= [] of String
+
+    params = Invidious::Videos.process_video_params(env.params.query, preferences)
+    env.params.query.delete_all("listen")
+
+    begin
+      video = get_video(id, region: params.region, env: env)
+    rescue ex : NotFoundException
+      LOGGER.error("get_video not found: #{id} : #{ex.message}")
+      return error_template(404, ex)
+    rescue ex
+      LOGGER.error("get_video: #{id} : #{ex.message}")
+      return error_template(500, ex)
+    end
+
+    if video.live_now && CONFIG.disable_livestreams
+      return error_template(403, "Livestreams are disabled as they are not working with invidious-companion right now. Please wait until an update comes out!")
+    end
+
+    if preferences.annotations_subscribed &&
+       subscriptions.includes?(video.ucid) &&
+       (env.params.query["iv_load_policy"]? || "1") == "1"
+      params.annotations = true
+    end
+    env.params.query.delete_all("iv_load_policy")
+
+    if watched && preferences.watch_history
+      Invidious::Database::Users.mark_watched(user.as(User), id)
+    end
+
+    if CONFIG.enable_user_notifications && notifications && notifications.includes? id
+      Invidious::Database::Users.remove_notification(user.as(User), id)
+      env.get("user").as(User).notifications.delete(id)
+      notifications.delete(id)
+    end
+
+    if nojs
+      if preferences
+        source = video.comments? ? preferences.comments[0] : "reddit"
+
+        if source.empty?
+          source = preferences.comments[1]
+        end
+
+        if source == "youtube"
+          begin
+            comment_html = JSON.parse(Comments.fetch_youtube(id, nil, "html", locale, preferences.thin_mode, region))["contentHtml"]
+          rescue ex
+            if preferences.comments[1] == "reddit"
+              comments, reddit_thread = Comments.fetch_reddit(id)
+              comment_html = Frontend::Comments.template_reddit(comments, locale)
+
+              comment_html = Comments.fill_links(comment_html, "https", "www.reddit.com")
+              comment_html = Comments.replace_links(comment_html)
+            end
+          end
+        elsif source == "reddit"
+          begin
+            comments, reddit_thread = Comments.fetch_reddit(id)
+            comment_html = Frontend::Comments.template_reddit(comments, locale)
+
+            comment_html = Comments.fill_links(comment_html, "https", "www.reddit.com")
+            comment_html = Comments.replace_links(comment_html)
+          rescue ex
+            if preferences.comments[1] == "youtube"
+              comment_html = JSON.parse(Comments.fetch_youtube(id, nil, "html", locale, preferences.thin_mode, region))["contentHtml"]
+            end
+          end
+        end
+      else
+        comment_html = JSON.parse(Comments.fetch_youtube(id, nil, "html", locale, preferences.thin_mode, region))["contentHtml"]
+      end
+
+      comment_html ||= ""
+    end
+
+    fmt_stream = video.fmt_stream
+    adaptive_fmts = video.adaptive_fmts
+
+    # Removes all the resolutions with a height higher than CONFIG.max_dash_resolution
+    if CONFIG.max_dash_resolution
+      adaptive_fmts.reject! do |z|
+        (z["height"].as_i > CONFIG.max_dash_resolution.not_nil!) if z["height"]?
+      end
+    end
+
+    if params.local
+      fmt_stream.each { |fmt| fmt["url"] = JSON::Any.new(HttpServer::Utils.proxy_video_url(fmt["url"].as_s)) }
+    end
+
+    video_streams = video.video_streams
+    audio_streams = video.audio_streams
+
+    # Removes all the resolutions with a height higher than CONFIG.max_dash_resolution
+    if CONFIG.max_dash_resolution
+      video_streams.reject! do |z|
+        (z["height"].as_i > CONFIG.max_dash_resolution.not_nil!) if z["height"]?
+      end
+    end
+
+    # Videos that are a premiere do not have audio streams.
+    if video.premiere_timestamp.nil?
+      # Older videos may not have audio sources available.
+      # We redirect here so they're not unplayable
+      if audio_streams.empty? && !video.live_now
+        if params.quality == "dash"
+          env.params.query.delete_all("quality")
+          env.params.query["quality"] = "medium"
+          return env.redirect "/watch?#{env.params.query}"
+        elsif params.listen
+          env.params.query.delete_all("listen")
+          env.params.query["listen"] = "0"
+          return env.redirect "/watch?#{env.params.query}"
+        end
+      end
+    end
+
+    captions = video.captions
+
+    preferred_captions = captions.select { |caption|
+      params.preferred_captions.includes?(caption.name) ||
+        params.preferred_captions.includes?(caption.language_code.split("-")[0])
+    }
+    preferred_captions.sort_by! { |caption|
+      (params.preferred_captions.index(caption.name) ||
+        params.preferred_captions.index(caption.language_code.split("-")[0])).not_nil!
+    }
+    captions = captions - preferred_captions
+
+    if show_transcripts
+      # Transcripts can be mapped 1:1 to a video's captions.
+      # As such the amount of transcripts available is the same as the amount of captions available.
+      #
+      # To request transcripts we have to give a language code, and a boolean dictating whether or not
+      # it is auto-generated. These attributes can be retrieved from the video's caption metadata.
+
+      # First we check if a transcript has been explicitly selected.
+      # The `use_this_transcript` url parameter provides the label of the transcript the user wants.
+      if selected_transcript
+        selected_transcript = URI.decode_www_form(selected_transcript)
+        target_transcript = captions.select(&.name.== selected_transcript)
+      else
+        target_transcript = nil
+      end
+
+      # If the selected transcript has a match then we'll request that.
+      #
+      # If it does not match we'll try and request a transcript based on the user's
+      # preferred transcript
+      #
+      # If that also does not match then we'll just select the first transcript
+      # out of everything that's available.
+      #
+      # Raises when no matches are found
+      if target_transcript.is_a?(Array) && !target_transcript.empty?
+        target_transcript = target_transcript[0]
+      else
+        if !preferred_captions.empty?
+          target_transcript = preferred_captions[0]
+        elsif !captions.empty?
+          target_transcript = captions[0]
+        else
+          return error_template(404, "error_transcripts_none_available")
+        end
+      end
+
+      transcript_request_param = Invidious::Videos::Transcript.generate_param(
+        id, target_transcript.language_code, target_transcript.auto_generated
+      )
+
+      begin
+        transcript = Invidious::Videos::Transcript.from_raw(
+          YoutubeAPI.get_transcript(transcript_request_param, YoutubeAPI::ANDROID_CLIENT_CONFIG),
+          target_transcript.language_code,
+          target_transcript.auto_generated,
+        )
+      rescue NotFoundException
+        return error_template(404, "error_transcripts_none_available")
+      end
+    else
+      transcript = nil
+    end
+
+    aspect_ratio = "16:9"
+
+    thumbnail = "/vi/#{video.id}/maxres.jpg"
+
+    if params.raw
+      if params.listen
+        url = audio_streams[0]["url"].as_s
+
+        if params.quality.ends_with? "k"
+          audio_streams.each do |fmt|
+            if fmt["bitrate"].as_i == params.quality.rchop("k").to_i
+              url = fmt["url"].as_s
+            end
+          end
+        end
+      else
+        url = fmt_stream[0]["url"].as_s
+
+        fmt_stream.each do |fmt|
+          if fmt["quality"].as_s == params.quality
+            url = fmt["url"].as_s
+          end
+        end
+      end
+
+      return env.redirect url
+    end
+
+    # Structure used for the download widget
+    video_assets = Invidious::Frontend::WatchPage::VideoAssets.new(
+      full_videos: fmt_stream,
+      video_streams: video_streams,
+      audio_streams: audio_streams,
+      captions: video.captions
+    )
+
+    begin
+      video_url = fmt_stream[0]["url"].to_s
+    rescue
+      video_url = nil
+    end
+
+    if CONFIG.invidious_companion.present?
+      current_companion = env.get("current_companion").as(Int32)
+      invidious_companion = CONFIG.invidious_companion[current_companion]
+    end
+
+    templated "watch"
+  end
+
+  def self.redirect(env)
+    url = "/watch?v=#{env.params.url["id"]}"
+    if env.params.query.size > 0
+      url += "&#{env.params.query}"
+    end
+
+    return env.redirect url
+  end
+
+  def self.mark_watched(env)
+    locale = env.get("preferences").as(Preferences).locale
+
+    user = env.get? "user"
+    sid = env.get? "sid"
+    referer = get_referer(env, "/feed/subscriptions")
+
+    redirect = env.params.query["redirect"]?
+    redirect ||= "true"
+    redirect = redirect == "true"
+
+    if !user
+      if redirect
+        return env.redirect referer
+      else
+        return error_json(403, "No such user")
+      end
+    end
+
+    user = user.as(User)
+    sid = sid.as(String)
+    token = env.params.body["csrf_token"]?
+
+    id = env.params.query["id"]?
+    if !id
+      env.response.status_code = 400
+      return
+    end
+
+    begin
+      validate_request(token, sid, env.request, HMAC_KEY, locale)
+    rescue ex
+      if redirect
+        return error_template(400, ex)
+      else
+        return error_json(400, ex)
+      end
+    end
+
+    case action = env.params.query["action"]?
+    when "mark_watched"
+      Invidious::Database::Users.mark_watched(user, id)
+    when "mark_unwatched"
+      Invidious::Database::Users.mark_unwatched(user, id)
+    else
+      return error_json(400, "Unsupported action #{action}")
+    end
+
+    if redirect
+      env.redirect referer
+    else
+      env.response.content_type = "application/json"
+      "{}"
+    end
+  end
+
+  def self.clip(env)
+    clip_id = env.params.url["clip"]?
+
+    return error_template(400, "A clip ID is required") if !clip_id
+
+    response = YoutubeAPI.resolve_url("https://www.youtube.com/clip/#{clip_id}")
+    return error_template(400, "Invalid clip ID") if response["error"]?
+
+    if video_id = response.dig?("endpoint", "watchEndpoint", "videoId")
+      if params = response.dig?("endpoint", "watchEndpoint", "params").try &.as_s
+        start_time, end_time, _ = Invidious::Videos::Clip.parse_clip_parameters(params)
+        env.params.query["start"] = start_time.to_s if start_time != nil
+        env.params.query["end"] = end_time.to_s if end_time != nil
+      end
+
+      return env.redirect "/watch?v=#{video_id}&#{env.params.query}"
+    else
+      return error_template(404, "The requested clip doesn't exist")
+    end
+  end
+
+  def self.download(env)
+    if CONFIG.disabled?("downloads")
+      return error_template(403, "Administrator has disabled this endpoint.")
+    end
+    if CONFIG.invidious_companion.present?
+      current_companion = env.get("current_companion").as(Int32)
+      invidious_companion = CONFIG.invidious_companion[current_companion]
+      return env.redirect invidious_companion.public_url
+    end
+
+    title = env.params.body["title"]? || ""
+    video_id = env.params.body["id"]? || ""
+    selection = env.params.body["download_widget"]?
+
+    if title.empty? || video_id.empty? || selection.nil?
+      return error_template(400, "Missing form data")
+    end
+
+    download_widget = JSON.parse(selection)
+
+    extension = download_widget["ext"].as_s
+    filename = "#{title}-#{video_id}.#{extension}"
+
+    # Delete the now useless URL parameters
+    env.params.body.delete("id")
+    env.params.body.delete("title")
+    env.params.body.delete("download_widget")
+
+    # Pass form parameters as URL parameters for the handlers of both
+    # /latest_version and /api/v1/captions. This avoids an un-necessary
+    # redirect and duplicated (and hazardous) sanity checks.
+    if label = download_widget["label"]?
+      # URL params specific to /api/v1/captions/:id
+      env.params.url["id"] = video_id
+      env.params.query["title"] = filename
+      env.params.query["label"] = URI.decode_www_form(label.as_s)
+
+      return Invidious::Routes::API::V1::Videos.captions(env)
+    elsif itag = download_widget["itag"]?.try &.as_i.to_s
+      # URL params specific to /latest_version
+      env.params.query["id"] = video_id
+      env.params.query["title"] = filename
+      env.params.query["local"] = "true"
+
+      return Invidious::Routes::VideoPlayback.latest_version(env)
+    else
+      return error_template(400, "Invalid label or itag")
+    end
+  end
+end

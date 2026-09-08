@@ -1,0 +1,25 @@
+<% content_for "header" do %>
+<meta name="description" content="<%= I18n.translate(locale, "An alternative front-end to YouTube") %>">
+<title>
+    <% if env.get("preferences").as(Preferences).default_home != "Popular" %>
+        <%= I18n.translate(locale, "Popular") %> - Invidious
+    <% else %>
+        Invidious
+    <% end %>
+</title>
+<% end %>
+
+<%= rendered "components/feed_menu" %>
+
+<div class="pure-g">
+<% popular_videos.each do |item| %>
+    <%
+        if hidden_channels = preferences.hidden_channels
+           next if hidden_channels.any? { |ucid| ucid == item.ucid }
+        end
+    %>
+    <%= rendered "components/item" %>
+<% end %>
+</div>
+
+<script src="/<%= JS_PATH %>/watched_indicator.js"></script>

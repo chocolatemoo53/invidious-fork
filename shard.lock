@@ -1,0 +1,62 @@
+version: 2.0
+shards:
+  ameba:
+    git: https://github.com/crystal-ameba/ameba.git
+    version: 1.6.4
+
+  athena-negotiation:
+    git: https://github.com/athena-framework/negotiation.git
+    version: 0.1.5
+
+  backtracer:
+    git: https://github.com/sija/backtracer.cr.git
+    version: 1.2.4
+
+  db:
+    git: https://github.com/crystal-lang/crystal-db.git
+    version: 0.13.1
+
+  exception_page:
+    git: https://github.com/crystal-loot/exception_page.git
+    version: 0.5.0
+
+  gcry:
+    git: https://github.com/sdogruyol/gcry.git
+    version: 0.21.3
+
+  http_proxy:
+    git: https://github.com/mamantoha/http_proxy.git
+    version: 0.10.3
+
+  kemal:
+    git: https://github.com/kemalcr/kemal.git
+    version: 1.9.0
+
+  lru:
+    git: https://github.com/fijxu/crystal-lru.git
+    version: 1.0.5
+
+  pg:
+    git: https://github.com/will/crystal-pg.git
+    version: 0.28.0
+
+  protodec:
+    git: https://github.com/iv-org/protodec.git
+    version: 0.1.5
+
+  radix:
+    git: https://github.com/luislavena/radix.git
+    version: 0.4.1
+
+  redis:
+    git: https://github.com/jgaskins/redis.git
+    version: 0.15.3
+
+  spectator:
+    git: https://github.com/icy-arctic-fox/spectator.git
+    version: 0.10.6
+
+  sqlite3:
+    git: https://github.com/crystal-lang/crystal-sqlite3.git
+    version: 0.21.0
+
