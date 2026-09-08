@@ -225,7 +225,7 @@ module Invidious::Routes::Watch
 
       begin
         transcript = Invidious::Videos::Transcript.from_raw(
-          YoutubeAPI.get_transcript(transcript_request_param, client_config: ANDROID_CLIENT_CONFIG),
+          YoutubeAPI.get_transcript(transcript_request_param, client_config: YoutubeAPI::ANDROID_CLIENT_CONFIG),
           target_transcript.language_code,
           target_transcript.auto_generated,
         )

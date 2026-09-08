@@ -96,7 +96,7 @@ module Invidious::Routes::API::V1::Videos
       params = Invidious::Videos::Transcript.generate_param(id, caption.language_code, caption.auto_generated)
 
       transcript = Invidious::Videos::Transcript.from_raw(
-        YoutubeAPI.get_transcript(params, client_config: ANDROID_CLIENT_CONFIG),
+        YoutubeAPI.get_transcript(params, client_config: YoutubeAPI::ANDROID_CLIENT_CONFIG),
         caption.language_code,
         caption.auto_generated
       )
@@ -508,7 +508,7 @@ module Invidious::Routes::API::V1::Videos
 
     begin
       transcript = Invidious::Videos::Transcript.from_raw(
-        YoutubeAPI.get_transcript(params, client_config: ANDROID_CLIENT_CONFIG), lang, auto_generated
+        YoutubeAPI.get_transcript(params, client_config: YoutubeAPI::ANDROID_CLIENT_CONFIG), lang, auto_generated
       )
     rescue ex : NotFoundException
       return error_json(404, ex)
