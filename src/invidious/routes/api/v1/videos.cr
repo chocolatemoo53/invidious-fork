@@ -490,6 +490,20 @@ module Invidious::Routes::API::V1::Videos
         target_transcript = target_transcript[0]
         lang, auto_generated = target_transcript.language_code, target_transcript.auto_generated
       end
+    else
+      begin
+        video = get_video(id)
+      rescue ex : NotFoundException
+        return error_json(404, ex)
+      rescue ex
+        return error_json(500, ex)
+      end
+
+      target_transcript = video.captions.select { |c| c.language_code == lang && c.auto_generated == auto_generated }
+      if target_transcript.empty?
+        return error_json(404, NotFoundException.new("Requested transcript does not exist"))
+      end
+      target_transcript = target_transcript[0]
     end
 
     begin
