@@ -279,7 +279,6 @@ module YoutubeAPI
 
   # Default client config, used if nothing is passed
   DEFAULT_CLIENT_CONFIG = ClientConfig.new
-  ANDROID_CLIENT_CONFIG = ClientConfig.new(client_type: ClientType::Android)
 
   ####################################################################
   # make_context(client_config)

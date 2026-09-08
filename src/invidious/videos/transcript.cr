@@ -101,6 +101,62 @@ module Invidious::Videos
       )
     end
 
+    def self.from_timedtext(xml_body : String, language_code : String, auto_generated : Bool, label : String = "")
+      tree = XML.parse(xml_body)
+      lines = [] of TranscriptLine
+
+      p_nodes = tree.xpath_nodes("//p")
+      if !p_nodes.empty?
+        p_nodes.each do |p_node|
+          start_ms = (p_node["t"]?.try &.to_f64 || 0.0).milliseconds
+          duration_ms = (p_node["d"]?.try &.to_f64 || 0.0).milliseconds
+          end_ms = start_ms + duration_ms
+
+          text = String.build do |io|
+            p_node.children.each do |child|
+              if child.name == "s"
+                io << child.content
+              end
+            end
+          end
+
+          text = HTML.unescape(text)
+          text = text.gsub(/<font color="#[a-fA-F0-9]{6}">/, "")
+          text = text.gsub(/<\/font>/, "")
+
+          next if text.empty?
+
+          lines << RegularLine.new(start_ms, end_ms, text)
+        end
+      else
+        text_nodes = tree.xpath_nodes("//text")
+        text_nodes.each_with_index do |node, i|
+          start_ms = (node["start"]?.try &.to_f64 || 0.0).milliseconds
+          duration_ms = (node["dur"]?.try &.to_f64 || 0.0).milliseconds
+          end_ms = start_ms + duration_ms
+
+          text = HTML.unescape(node.content)
+          text = text.gsub(/<font color="#[a-fA-F0-9]{6}">/, "")
+          text = text.gsub(/<\/font>/, "")
+
+          next if text.empty?
+
+          lines << RegularLine.new(start_ms, end_ms, text)
+        end
+      end
+
+      if lines.empty?
+        raise NotFoundException.new("Requested transcript does not exist")
+      end
+
+      return Transcript.new(
+        lines: lines,
+        language_code: language_code,
+        auto_generated: auto_generated,
+        label: label.empty? ? language_code : label
+      )
+    end
+
     # Converts transcript lines to a WebVTT file
     #
     # This is used within Invidious to replace subtitles

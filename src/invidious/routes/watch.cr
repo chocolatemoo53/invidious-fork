@@ -219,15 +219,15 @@ module Invidious::Routes::Watch
         end
       end
 
-      transcript_request_param = Invidious::Videos::Transcript.generate_param(
-        id, target_transcript.language_code, target_transcript.auto_generated
-      )
-
       begin
-        transcript = Invidious::Videos::Transcript.from_raw(
-          YoutubeAPI.get_transcript(transcript_request_param, YoutubeAPI::ANDROID_CLIENT_CONFIG),
+        timedtext_url = URI.parse("#{target_transcript.base_url}").request_target
+        timedtext_xml = YT_POOL.client &.get(timedtext_url).body
+
+        transcript = Invidious::Videos::Transcript.from_timedtext(
+          timedtext_xml,
           target_transcript.language_code,
           target_transcript.auto_generated,
+          target_transcript.name,
         )
       rescue NotFoundException
         return error_template(404, "error_transcripts_none_available")

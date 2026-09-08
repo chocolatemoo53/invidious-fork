@@ -41,7 +41,13 @@
                                 <%= I18n.translate(locale, "Sign In") %>/<%= I18n.translate(locale, "Register") %>
                             </button>
                         <% end %>
-			<p>Please, do not use your E-mail address!. If you lost your password there is no way to recover it using a Password Recovery E-mail. If you lose your password, your should <a href="https://nadeko.net/contact">contact the admin</a> instead or just create a new account (If you don't care about your subscriptions, history and playlists.)</p>
+			<p>Please, do not use your E-mail address!. If you lost your password there is no way to recover it using a Password Recovery E-mail. If you lose your password, you should
+                        <% if CONFIG.instance_maintainer_email %>
+                            <a href="mailto:<%= CONFIG.instance_maintainer_email %>">contact the admin</a>
+                        <% else %>
+                            contact the admin
+                        <% end %>
+                        or just create a new account (If you don't care about your subscriptions, history and playlists.)</p>
 			<p>
                     </fieldset>
                 </form>

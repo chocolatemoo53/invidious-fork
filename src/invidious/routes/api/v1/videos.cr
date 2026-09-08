@@ -92,60 +92,49 @@ module Invidious::Routes::API::V1::Videos
       caption = caption[0]
     end
 
-    if CONFIG.use_innertube_for_captions
-      params = Invidious::Videos::Transcript.generate_param(id, caption.language_code, caption.auto_generated)
+    # Timedtext API handling
+    url = URI.parse("#{caption.base_url}&tlang=#{tlang}").request_target
 
-      transcript = Invidious::Videos::Transcript.from_raw(
-        YoutubeAPI.get_transcript(params, YoutubeAPI::ANDROID_CLIENT_CONFIG),
-        caption.language_code,
-        caption.auto_generated
-      )
+    # Auto-generated captions often have cues that aren't aligned properly with the video,
+    # as well as some other markup that makes it cumbersome, so we try to fix that here
+    if caption.name.includes? "auto-generated"
+      caption_xml = YT_POOL.client &.get(url).body
 
-      webvtt = transcript.to_vtt
-    else
-      # Timedtext API handling
-      url = URI.parse("#{caption.base_url}&tlang=#{tlang}").request_target
+      settings_field = {
+        "Kind"     => "captions",
+        "Language" => "#{tlang || caption.language_code}",
+      }
 
-      # Auto-generated captions often have cues that aren't aligned properly with the video,
-      # as well as some other markup that makes it cumbersome, so we try to fix that here
-      if caption.name.includes? "auto-generated"
-        caption_xml = YT_POOL.client &.get(url).body
+      if caption_xml.starts_with?("<?xml")
+        webvtt = caption.timedtext_to_vtt(caption_xml, tlang)
+      else
+        caption_xml = XML.parse(caption_xml)
 
-        settings_field = {
-          "Kind"     => "captions",
-          "Language" => "#{tlang || caption.language_code}",
-        }
+        webvtt = WebVTT.build(settings_field) do |builder|
+          caption_nodes = caption_xml.xpath_nodes("//transcript/text")
+          caption_nodes.each_with_index do |node, i|
+            start_time = node["start"].to_f.seconds
+            duration = node["dur"]?.try &.to_f.seconds
+            duration ||= start_time
 
-        if caption_xml.starts_with?("<?xml")
-          webvtt = caption.timedtext_to_vtt(caption_xml, tlang)
-        else
-          caption_xml = XML.parse(caption_xml)
-
-          webvtt = WebVTT.build(settings_field) do |builder|
-            caption_nodes = caption_xml.xpath_nodes("//transcript/text")
-            caption_nodes.each_with_index do |node, i|
-              start_time = node["start"].to_f.seconds
-              duration = node["dur"]?.try &.to_f.seconds
-              duration ||= start_time
-
-              if caption_nodes.size > i + 1
-                end_time = caption_nodes[i + 1]["start"].to_f.seconds
-              else
-                end_time = start_time + duration
-              end
-
-              text = HTML.unescape(node.content)
-              text = text.gsub(/<font color="#[a-fA-F0-9]{6}">/, "")
-              text = text.gsub(/<\/font>/, "")
-              if md = text.match(/(?<name>.*) : (?<text>.*)/)
-                text = "<v #{md["name"]}>#{md["text"]}</v>"
-              end
-
-              builder.cue(start_time, end_time, text)
+            if caption_nodes.size > i + 1
+              end_time = caption_nodes[i + 1]["start"].to_f.seconds
+            else
+              end_time = start_time + duration
             end
+
+            text = HTML.unescape(node.content)
+            text = text.gsub(/<font color="#[a-fA-F0-9]{6}">/, "")
+            text = text.gsub(/<\/font>/, "")
+            if md = text.match(/(?<name>.*) : (?<text>.*)/)
+              text = "<v #{md["name"]}>#{md["text"]}</v>"
+            end
+
+            builder.cue(start_time, end_time, text)
           end
         end
-      else
+      end
+    else
         uri = URI.parse(url)
         query_params = uri.query_params
         query_params["fmt"] = "vtt"
@@ -162,7 +151,6 @@ module Invidious::Routes::API::V1::Videos
           # See: https://github.com/iv-org/invidious/issues/2391
           webvtt = webvtt.gsub(/([0-9:.]{12} --> [0-9:.]{12}).+/, "\\1")
         end
-      end
     end
 
     if title = env.params.query["title"]?
@@ -504,11 +492,12 @@ module Invidious::Routes::API::V1::Videos
       end
     end
 
-    params = Invidious::Videos::Transcript.generate_param(id, lang, auto_generated)
-
     begin
-      transcript = Invidious::Videos::Transcript.from_raw(
-        YoutubeAPI.get_transcript(params, YoutubeAPI::ANDROID_CLIENT_CONFIG), lang, auto_generated
+      timedtext_url = URI.parse("#{target_transcript.base_url}").request_target
+      timedtext_xml = YT_POOL.client &.get(timedtext_url).body
+
+      transcript = Invidious::Videos::Transcript.from_timedtext(
+        timedtext_xml, lang, auto_generated
       )
     rescue ex : NotFoundException
       return error_json(404, ex)
