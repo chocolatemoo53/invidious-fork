@@ -1,0 +1,62 @@
+channel_threads: 0
+log_level: Info
+colorize_logs: true
+database_url: postgres://kemal:kemal@pgbouncer:6432/invidious
+redis_url: tcp://valkey:6379
+https_only: true
+domain: inv.nadeko.net
+use_pubsub_feeds: false
+popular_enabled: true
+captcha_enabled: true
+login_enabled: true
+registration_enabled: true
+statistics_enabled: true
+external_port: 443
+cache_annotations: true
+hsts: true
+enable_user_notifications: true
+modified_source_code_url: https://git.nadeko.net/Fijxu/invidious
+force_resolve: ipv4
+pool_size: 100
+use_innertube_for_captions: true
+
+instance_maintainer_email: admin@nadeko.net
+footer_instance_donate_link: "https://nadeko.net/donate"
+footer_instance_section_custom_fields:
+  - ["Tor", "http://inv.nadekonw7plitnjuawu6ytjsl7jlglk2t6pyq6eftptmiv3dvqndwvyd.onion"]
+  - ["Backend information / Información de la Instancia", "https://nadeko.net/invidious-instance-information/"]
+  - ["Service Status / Estado del servicio", "https://status.nadeko.net/status/invidious"]
+  - ["REPORT ISSUES HERE!", "https://git.nadeko.net/Fijxu/invidious/issues"]
+  - ["nadeko.net Matrix Room", "https://matrix.to/#/#nadeko.net:tchncs.de"]
+
+# inv.nadeko.net only options
+pubsub_domain: https://inv.nadeko.net
+max_dash_resolution: 1080
+
+jobs:
+  refresh_channels:
+    enable: false
+  subscribe_to_feeds:
+    enable: false
+
+default_user_preferences:
+  region: CL
+  dark_mode: dark
+  autoplay: true
+  quality: dash
+  save_player_pos: true
+  extend_desc: true
+  #local: false
+
+server_id_cookie_name: "COMPANION_IDD"
+
+video_cache:
+  enabled: true
+  backend: 1
+
+force_local: true
+check_backends_interval: 3
+max_popular_results: 100
+disable_video_downloads: true
+
+hmac_key: "blahblahthisisnotarealkeyusedonproductionthisisjustfortesting123"

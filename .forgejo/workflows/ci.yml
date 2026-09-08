@@ -1,0 +1,67 @@
+name: "Invidious CI"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "master"
+    paths-ignore:
+      - "*.md"
+      - LICENCE
+      - TRANSLATION
+      - invidious.service
+      - .git*
+      - .editorconfig
+      - screenshots/*
+      - .github/ISSUE_TEMPLATE/*
+      - kubernetes/**
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - gcry: "0"
+            suffix: ""
+          - gcry: "1"
+            suffix: "-gcry"
+
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v7
+
+      - uses: https://code.forgejo.org/docker/setup-buildx-action@v4
+        name: Setup Docker BuildX system
+
+      - name: Login to Docker Container Registry
+        uses: https://code.forgejo.org/docker/login-action@v4
+        with:
+          registry: git.nadeko.net
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: https://github.com/docker/metadata-action@v6
+        with:
+          images: git.nadeko.net/fijxu/invidious
+          flavor: |
+            suffix=${{ matrix.suffix }}
+          tags: |
+            type=sha,format=short,prefix={{date 'YYYY.MM.DD'}}-,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+
+      - uses: https://code.forgejo.org/docker/build-push-action@v7
+        name: Build images (gcry=${{ matrix.gcry }})
+        with:
+          context: .
+          file: docker/Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          platforms: linux/amd64
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            "release=1"
+            "gcry=${{ matrix.gcry }}"
