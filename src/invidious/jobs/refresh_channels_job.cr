@@ -38,8 +38,8 @@ class Invidious::Jobs::RefreshChannelsJob < Invidious::Jobs::BaseJob
               Invidious::Database::Channels.update_author(id, channel.author)
 
               if backoff > 2.minutes
-                backoff /= 2
                 LOGGER.debug("RefreshChannelsJob: #{id} fiber : decreasing backoff to #{backoff}s")
+                backoff = 2.minutes
               end
             rescue ex
               LOGGER.error("RefreshChannelsJob: #{id} : #{ex.message}")
@@ -49,11 +49,17 @@ class Invidious::Jobs::RefreshChannelsJob < Invidious::Jobs::BaseJob
                 lim_fibers = 1
                 LOGGER.error("RefreshChannelsJob: #{id} fiber : backing off for #{backoff}s")
                 sleep backoff
-                if backoff < 1.days
-                  backoff += backoff
-                else
-                  backoff = 1.days
-                end
+                # Step up a fixed ladder (2/3/5/10/15 min) instead of doubling
+                # without a cap. backoff is shared by every fiber, so one upstream
+                # hiccup that hits all of them at once used to multiply it several
+                # times over and could reach the old 1 day ceiling from a single
+                # bad moment. A flat ladder keeps that bounded.
+                backoff = case backoff
+                          when 2.minutes then 3.minutes
+                          when 3.minutes then 5.minutes
+                          when 5.minutes then 10.minutes
+                          else                15.minutes
+                          end
               end
             ensure
               LOGGER.debug("RefreshChannelsJob: #{id} fiber : Done")

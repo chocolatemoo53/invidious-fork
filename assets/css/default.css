@@ -1026,22 +1026,49 @@ h1, h2, h3, h4, h5, p,
 .video-transcript {
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  height: 30em;
   padding: 10px;
   border: 1px solid #a0a0a0;
   border-radius: 10px;
 }
 
-.video-transcript header {
+.transcript-toggle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding-bottom: 5px;
   border-bottom: 1px solid #a0a0a0;
+  cursor: pointer;
+  user-select: none;
 }
 
-.video-transcript > #lines {
+.transcript-toggle-header h3 {
+  margin: 0;
+}
+
+.transcript-arrow {
+  transition: transform 0.2s ease;
+}
+
+.transcript-toggle-input:checked ~ .transcript-toggle-header .transcript-arrow {
+  transform: rotate(180deg);
+}
+
+.transcript-body {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 30em;
+}
+
+.transcript-toggle-input:checked ~ .transcript-body {
+  display: flex;
+}
+
+.video-transcript > .transcript-body > #lines {
   display: flex;
   flex-direction: column;
-  overflow: scroll;
+  overflow-y: auto;
+  max-height: 25em;
 }
 
 .transcript-line, .transcript-title-line {
@@ -1069,17 +1096,17 @@ h1, h2, h3, h4, h5, p,
   background: #cacaca;
 }
 
-.video-transcript > footer {
+.transcript-body > footer {
   padding-bottom: 14px;
   border-top: 1px solid #a0a0a0
 }
 
-.video-transcript > footer > form {
+.transcript-body > footer > form {
   display: flex;
   justify-content: center;
 }
 
-.video-transcript > footer select {
+.transcript-body > footer select {
   width: 75%;
 }
 

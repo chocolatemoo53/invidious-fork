@@ -131,8 +131,8 @@ module Invidious::Videos
       else
         text_nodes = tree.xpath_nodes("//text")
         text_nodes.each_with_index do |node, i|
-          start_ms = (node["start"]?.try &.to_f64 || 0.0).milliseconds
-          duration_ms = (node["dur"]?.try &.to_f64 || 0.0).milliseconds
+          start_ms = (node["start"]?.try &.to_f64 || 0.0).seconds
+          duration_ms = (node["dur"]?.try &.to_f64 || 0.0).seconds
           end_ms = start_ms + duration_ms
 
           text = HTML.unescape(node.content)
