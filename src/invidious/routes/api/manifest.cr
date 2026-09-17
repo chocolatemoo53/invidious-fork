@@ -108,7 +108,7 @@ module Invidious::Routes::API::Manifest
 
           potential_heights = {4320, 2160, 1440, 1080, 720, 480, 360, 240, 144}
 
-          {"video/mp4", "video/webm"}.each do |mime_type|
+          {"video/webm", "video/mp4"}.each do |mime_type|
             mime_streams = video_streams.select { |stream| stream["mimeType"].as_s.starts_with? mime_type }
             next if mime_streams.empty?
 

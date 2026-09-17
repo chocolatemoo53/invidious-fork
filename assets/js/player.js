@@ -100,11 +100,16 @@ class QualityMultiSelector extends videojs.getComponent('MenuButton') {
       this._mode = 'dash';
       this._mp4Sources = [];
       this._dashLevels = Array.prototype.map.call(qLevels, (level, originalIndex) => ({ level, originalIndex }))
-        .sort((a, b) =>
-          (this._getHeight(b.level) - this._getHeight(a.level)) ||
-          (this._getFrameRate(b.level) - this._getFrameRate(a.level)) ||
-          (this._getBitrate(b.level) - this._getBitrate(a.level))
-        );
+        .sort((a, b) => {
+          const heightDiff = this._getHeight(b.level) - this._getHeight(a.level);
+          if (heightDiff !== 0) return heightDiff;
+          const aVP9 = this._isVP9(a.level);
+          const bVP9 = this._isVP9(b.level);
+          if (aVP9 && !bVP9) return -1;
+          if (!aVP9 && bVP9) return 1;
+          return (this._getFrameRate(b.level) - this._getFrameRate(a.level)) ||
+                 (this._getBitrate(b.level) - this._getBitrate(a.level));
+        });
       this._selectedIndex = -1;
     } else {
       this._dashLevels = [];
@@ -244,7 +249,8 @@ class QualityMultiSelector extends videojs.getComponent('MenuButton') {
     const height = this._getHeight(level);
     if (height > 0) {
       const fps = this._getFrameRate(level);
-      return fps > 0 ? `${height}p@${fps}` : `${height}p`;
+      const codec = this._isVP9(level) ? ' VP9' : '';
+      return fps > 0 ? `${height}p@${fps}${codec}` : `${height}p${codec}`;
     }
     if (level.width) return `${level.width}p`;
     if (level.bitrate) return this._formatBitrate(level.bitrate);
@@ -292,6 +298,13 @@ class QualityMultiSelector extends videojs.getComponent('MenuButton') {
 
   _getBitrate(level) { return level.bitrate || 0; }
 
+  _getCodec(level) { return level.codec || ''; }
+
+  _isVP9(level) {
+    const codec = this._getCodec(level).toLowerCase();
+    return codec.includes('vp09') || codec.includes('vp9');
+  }
+
   _formatBitrate(bits) {
     return bits >= 1000000
       ? `${(bits / 1000000).toFixed(1)} Mbps`
@@ -302,6 +315,30 @@ class QualityMultiSelector extends videojs.getComponent('MenuButton') {
     const levels = this.player().qualityLevels();
     for (let i = 0; i < levels.length; i++) {
       levels[i].enabled = true;
+    }
+
+    const sorted = Array.from(levels)
+      .map(l => ({ level: l, height: l.height || 0 }))
+      .filter(l => l.height > 0)
+      .sort((a, b) => a.height - b.height);
+
+    if (sorted.length > 2) {
+      const floorIndex = Math.max(1, Math.floor(sorted.length * 0.25));
+      const floorHeight = sorted[floorIndex].height;
+      const player = this.player();
+
+      if (!this._autoFloorHandler) {
+        this._autoFloorHandler = () => {
+          if (!this._autoSelected) return;
+          const active = Array.from(levels).find(l => l.active);
+          if (active && (active.height || 0) < floorHeight) {
+            levels.forEach(l => {
+              l.enabled = (l.height || 0) >= floorHeight;
+            });
+          }
+        };
+        player.on('timeupdate', this._autoFloorHandler);
+      }
     }
 
     this._autoSelected = true;
@@ -531,7 +568,8 @@ var options = {
         preloadTextTracks: false,
         vhs: {
             overrideNative: true,
-            experimentalUseMMS: true
+            experimentalUseMMS: true,
+            smoothQualityChange: true
         }
     }
 };
@@ -562,6 +600,9 @@ if (CONFIG.videojs.goal_buffer_length) {
 }
 if (CONFIG.videojs.max_goal_buffer_length) {
     videojs.Vhs.MAX_GOAL_BUFFER_LENGTH = CONFIG.videojs.max_goal_buffer_length;
+}
+if (CONFIG.videojs.initial_bandwidth) {
+    videojs.Vhs.BANDWIDTH = CONFIG.videojs.initial_bandwidth;
 }
 
 var player = videojs('player', options);
@@ -920,7 +961,15 @@ if (!video_data.params.listen && video_data.params.quality === 'dash') {
                 case 'auto':
                     break;
                 case 'best':
-                    targetLevel = levels.reduce((a, b) => (a.height > b.height ? a : b), levels[0]);
+                    targetLevel = levels.sort((a, b) => {
+                        const heightDiff = (b.height || 0) - (a.height || 0);
+                        if (heightDiff !== 0) return heightDiff;
+                        const aVP9 = (a.codec || '').includes('vp09') || (a.codec || '').includes('vp9');
+                        const bVP9 = (b.codec || '').includes('vp09') || (b.codec || '').includes('vp9');
+                        if (aVP9 && !bVP9) return -1;
+                        if (!aVP9 && bVP9) return 1;
+                        return 0;
+                    })[0];
                     break;
                 case 'worst':
                     targetLevel = levels.reduce((a, b) => (a.height < b.height ? a : b), levels[0]);
@@ -929,7 +978,15 @@ if (!video_data.params.listen && video_data.params.quality === 'dash') {
                     const targetHeight = parseInt(video_data.params.quality_dash);
                     targetLevel = levels
                         .filter(level => level.height <= targetHeight)
-                        .sort((a, b) => b.height - a.height)[0];
+                        .sort((a, b) => {
+                            const heightDiff = b.height - a.height;
+                            if (heightDiff !== 0) return heightDiff;
+                            const aVP9 = (a.codec || '').includes('vp09') || (a.codec || '').includes('vp9');
+                            const bVP9 = (b.codec || '').includes('vp09') || (b.codec || '').includes('vp9');
+                            if (aVP9 && !bVP9) return -1;
+                            if (!aVP9 && bVP9) return 1;
+                            return 0;
+                        })[0];
                     if (!targetLevel) {
                         targetLevel = levels.sort((a, b) => b.height - a.height)[0];
                     }

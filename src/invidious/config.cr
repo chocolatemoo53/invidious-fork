@@ -314,6 +314,7 @@ class Config
 
     property goal_buffer_length : Int32? = 30
     property max_goal_buffer_length : Int32? = 60
+    property initial_bandwidth : Int32? = 2_000_000
   end
 
   # Disable easy to abuse API endpoints
