@@ -201,7 +201,16 @@ module Invidious::Videos::Parser
       .try &.as_s.to_i64
 
     published = microformat["publishDate"]?
-      .try { |t| Time.parse(t.as_s, "%Y-%m-%d", Time::Location::UTC) } || Time.utc
+      .try { |t| Time.parse(t.as_s, "%Y-%m-%d", Time::Location::UTC) }
+
+    if !published && (date_text = video_primary_renderer.try &.dig?("dateText", "simpleText").try &.as_s)
+      begin
+        published = decode_date(date_text[/[A-Z][a-z]{2} \d{1,2}, \d{4}/]? || date_text)
+      rescue
+      end
+    end
+
+    published ||= Time.utc
 
     premiere_timestamp = microformat.dig?("liveBroadcastDetails", "startTimestamp")
       .try { |t| Time.parse_rfc3339(t.as_s) }
