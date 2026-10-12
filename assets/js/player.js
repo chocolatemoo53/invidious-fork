@@ -317,30 +317,6 @@ class QualityMultiSelector extends videojs.getComponent('MenuButton') {
       levels[i].enabled = true;
     }
 
-    const sorted = Array.from(levels)
-      .map(l => ({ level: l, height: l.height || 0 }))
-      .filter(l => l.height > 0)
-      .sort((a, b) => a.height - b.height);
-
-    if (sorted.length > 2) {
-      const floorIndex = Math.max(1, Math.floor(sorted.length * 0.25));
-      const floorHeight = sorted[floorIndex].height;
-      const player = this.player();
-
-      if (!this._autoFloorHandler) {
-        this._autoFloorHandler = () => {
-          if (!this._autoSelected) return;
-          const active = Array.from(levels).find(l => l.active);
-          if (active && (active.height || 0) < floorHeight) {
-            levels.forEach(l => {
-              l.enabled = (l.height || 0) >= floorHeight;
-            });
-          }
-        };
-        player.on('timeupdate', this._autoFloorHandler);
-      }
-    }
-
     this._autoSelected = true;
     this._selectedIndex = -1;
     this._updateSelectedMenuItem(0);
@@ -569,7 +545,8 @@ var options = {
         vhs: {
             overrideNative: true,
             experimentalUseMMS: true,
-            smoothQualityChange: true
+            useDevicePixelRatio: true,
+            useBandwidthFromLocalStorage: true
         }
     }
 };

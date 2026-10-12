@@ -118,9 +118,6 @@ module Invidious::Videos::Parser
       %w[formats adaptiveFormats].each do |key|
         streaming_data.as_h[key]?.try &.as_a.each do |format|
           format = format.as_h
-          if format["url"]?.nil?
-            format["url"] = format["signatureCipher"]
-          end
           format["url"] = JSON::Any.new(convert_url(format))
         end
       end
