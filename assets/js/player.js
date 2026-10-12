@@ -250,7 +250,7 @@ class QualityMultiSelector extends videojs.getComponent('MenuButton') {
     if (height > 0) {
       const fps = this._getFrameRate(level);
       const codecName = this._codecName(level);
-      const codec = codecName ? ` ${codecName}` : '';
+      const codec = codecName ? ` ${codecName}${this._isHDR(level) ? ' HDR' : ''}` : '';
       return fps > 0 ? `${height}p@${fps}${codec}` : `${height}p${codec}`;
     }
     if (level.width) return `${level.width}p`;
@@ -319,6 +319,12 @@ class QualityMultiSelector extends videojs.getComponent('MenuButton') {
   }
 
   _isVP9(level) { return this._codecName(level) === 'VP9'; }
+
+  _isHDR(level) {
+    const parts = this._getCodec(level).toLowerCase().split('.');
+    const transfer = parts[0] === 'vp09' ? parts[6] : parts[0] === 'av01' ? parts[7] : '';
+    return transfer === '16' || transfer === '18';
+  }
 
   _formatBitrate(bits) {
     return bits >= 1000000
@@ -600,6 +606,32 @@ if (CONFIG.videojs.initial_bandwidth) {
 }
 
 var player = videojs('player', options);
+
+player.on('loadedmetadata', function () {
+    var vhs = player.tech(true).vhs;
+    if (!vhs || vhs.codecSwitching) return;
+    vhs.codecSwitching = true;
+    var switchCodec = function () {
+        var media = vhs.playlists.media();
+        var updater = vhs.playlistController_.sourceUpdater_;
+        var codec = media && media.attributes.CODECS;
+        var buffer = updater.videoBuffer;
+        if (!codec || !buffer || !updater.canChangeType() || updater.codecs.video === codec) return;
+        if (codec.split('.')[0] !== updater.codecs.video.split('.')[0]) return updater.changeType('video', codec);
+        var change = function () {
+            if (buffer.updating) return buffer.addEventListener('updateend', change, { once: true });
+            try {
+                buffer.changeType('video/mp4;codecs="' + codec + '"');
+                updater.codecs.video = codec;
+            } catch (e) {
+                console.debug('[VideoJS Debug] changeType to ' + codec + ' failed', e);
+            }
+        };
+        change();
+    };
+    vhs.playlists.on('mediachange', switchCodec);
+    switchCodec();
+});
 
 player.on('error', function () {
     console.debug(`[VideoJS Debug] Playback cannot continue, error: ${player.error().code}`)

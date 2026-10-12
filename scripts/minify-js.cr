@@ -65,6 +65,7 @@ files_to_minify = [
   "themes.js",
   "watch.js",
   "player.js",
+  "webm_fmp4.js",
   "watched_indicator.js",
   "watched_widget.js",
 ]
