@@ -197,10 +197,12 @@ addEventListener('load', function (e) {
     }
 });
 
-document.getElementById("try-reddit-comments-link").onclick = swap_comments;
+const tryRedditLink = document.getElementById("try-reddit-comments-link");
+if (tryRedditLink) tryRedditLink.onclick = swap_comments;
 
 addEventListener("DOMContentLoaded", () => {
     const transcriptLines = document.getElementById("lines");
+    if (!transcriptLines) return;
     for (const transcriptLine of transcriptLines.children) {
         if (transcriptLine.nodeName != "A") continue
 
