@@ -173,13 +173,11 @@
     function vp9Profile(bitDepth) { return bitDepth > 8 ? 2 : 0; }
     function vp9Level(height) { return height > 1080 ? 51 : height > 720 ? 41 : 31; }
 
-    // HDR10 mastering display and light levels: mdcv/clli (ISO BMFF, read by Apple) and
-    // SmDm/CoLL (the VP9-in-MP4 binding)
     function hdrBoxes(t) {
         var out = [], m = t.mastering;
         if (m) {
             var chroma = function (id, unit) { return u16(Math.round((m[id] || 0) / unit) & 0xffff); };
-            var order = [0x55D3, 0x55D4, 0x55D5, 0x55D6, 0x55D1, 0x55D2, 0x55D7, 0x55D8]; // G, B, R, white
+            var order = [0x55D3, 0x55D4, 0x55D5, 0x55D6, 0x55D1, 0x55D2, 0x55D7, 0x55D8];
             out.push(box('mdcv', order.map(function (id) { return chroma(id, 0.00002); })
                 .concat([u32(Math.round((m[0x55D9] || 0) * 10000)), u32(Math.round((m[0x55DA] || 0) * 10000))])));
             var rgbw = [0x55D1, 0x55D2, 0x55D3, 0x55D4, 0x55D5, 0x55D6, 0x55D7, 0x55D8];
