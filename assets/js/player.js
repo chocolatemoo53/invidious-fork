@@ -639,14 +639,24 @@ player.on('loadedmetadata', function () {
         if (selector && !selector._autoSelected) return;
         return earlyAbort.call(this, stats);
     };
+    var webkit = /Apple/.test(navigator.vendor);
     controller.runFastQualitySwitch_ = function () {
         var loader = this.mainSegmentLoader_;
+        var tech = this.tech_;
+        var updater = this.sourceUpdater_;
         this.waitingForFastQualityPlaylistReceived_ = false;
         loader.pause();
         loader.activeInitSegmentId_ = null;
         loader.appendInitSegment_ = { audio: true, video: true };
         loader.resetLoader();
-        loader.remove(this.tech_.currentTime() + 2, Infinity);
+        if (webkit) {
+            loader.remove(0, Infinity, function () {
+                if (updater.videoBuffer && updater.videoBuffer.buffered.length === 0)
+                    tech.setCurrentTime(tech.currentTime() - 0.001);
+            });
+        } else {
+            loader.remove(tech.currentTime() + 2, Infinity);
+        }
         this.load();
     };
 });
