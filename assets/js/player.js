@@ -635,6 +635,12 @@ player.on('loadedmetadata', function () {
     switchCodec();
 
     var controller = vhs.playlistController_;
+    var earlyAbort = controller.mainSegmentLoader_.earlyAbortWhenNeeded_;
+    controller.mainSegmentLoader_.earlyAbortWhenNeeded_ = function (stats) {
+        var selector = player._qualityMultiSelector;
+        if (selector && !selector._autoSelected) return;
+        return earlyAbort.call(this, stats);
+    };
     controller.runFastQualitySwitch_ = function () {
         var loader = this.mainSegmentLoader_;
         this.waitingForFastQualityPlaylistReceived_ = false;
