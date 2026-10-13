@@ -606,6 +606,9 @@ if (CONFIG.videojs.initial_bandwidth) {
     videojs.Vhs.BANDWIDTH = CONFIG.videojs.initial_bandwidth;
 }
 
+if (!window.SourceBuffer && window.ManagedSourceBuffer && new URLSearchParams(location.search).has('changetype'))
+    window.SourceBuffer = window.ManagedSourceBuffer;
+
 var player = videojs('player', options);
 
 player.on('loadedmetadata', function () {
