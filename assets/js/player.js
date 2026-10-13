@@ -631,6 +631,18 @@ player.on('loadedmetadata', function () {
     };
     vhs.playlists.on('mediachange', switchCodec);
     switchCodec();
+
+    var controller = vhs.playlistController_;
+    controller.runFastQualitySwitch_ = function () {
+        var loader = this.mainSegmentLoader_;
+        this.waitingForFastQualityPlaylistReceived_ = false;
+        loader.pause();
+        loader.activeInitSegmentId_ = null;
+        loader.appendInitSegment_ = { audio: true, video: true };
+        loader.resetLoader();
+        loader.remove(this.tech_.currentTime() + 2, Infinity);
+        this.load();
+    };
 });
 
 player.on('error', function () {
