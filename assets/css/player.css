@@ -280,6 +280,7 @@ video.video-js {
 }
 
 .share-dialog-content {
+  font-family: var(--Font, BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, sans-serif);
   width: 100%;
   max-width: 750px;
   max-height: 100%;
@@ -316,7 +317,7 @@ video.video-js {
 }
 
 .share-input-wrapper:focus-within {
-  border-color: rgba(0, 182, 240, 0.6);
+  border-color: var(--Color1, rgba(0, 182, 240, 0.6));
 }
 
 .share-input-wrapper input {
@@ -325,13 +326,14 @@ video.video-js {
   border: none;
   padding: 10px 12px;
   color: #fff;
+  font-family: inherit;
   font-size: 14px;
   outline: none;
   width: 100%;
 }
 
 .share-input-wrapper input::selection {
-  background: rgba(0, 182, 240, 0.3);
+  background: var(--Color1Watched, rgba(0, 182, 240, 0.3));
 }
 
 .share-copy-btn {
@@ -363,20 +365,22 @@ video.video-js {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
-  color: #fff;
-  font-size: 20px;
-  font-weight: bold;
-  line-height: 1;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.social-fb { background: #1877F2; }
-.social-tw { background: #000; }
-.social-reddit { background: #FF4500; }
-.social-email { background: #0072C6; }
+.social-btn:hover,
+.social-btn:focus-visible {
+  background: var(--Color1, rgba(255, 255, 255, 0.15));
+  border-color: transparent;
+  color: #fff;
+}
 
 .vjs-menu-button-popup .vjs-menu .vjs-menu-content {
   max-height: 30em;
