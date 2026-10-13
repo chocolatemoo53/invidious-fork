@@ -22,7 +22,7 @@ shards:
 
   gcry:
     git: https://github.com/sdogruyol/gcry.git
-    version: 0.21.3
+    version: 0.34.0
 
   http_proxy:
     git: https://github.com/mamantoha/http_proxy.git
@@ -30,7 +30,7 @@ shards:
 
   kemal:
     git: https://github.com/kemalcr/kemal.git
-    version: 1.9.0
+    version: 1.14.0
 
   lru:
     git: https://github.com/fijxu/crystal-lru.git
@@ -50,7 +50,7 @@ shards:
 
   redis:
     git: https://github.com/jgaskins/redis.git
-    version: 0.15.3
+    version: 0.16.0
 
   spectator:
     git: https://github.com/icy-arctic-fox/spectator.git
