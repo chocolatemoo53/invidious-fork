@@ -612,26 +612,19 @@ player.on('loadedmetadata', function () {
     var vhs = player.tech(true).vhs;
     if (!vhs || vhs.codecSwitching) return;
     vhs.codecSwitching = true;
-    var switchCodec = function () {
-        var media = vhs.playlists.media();
-        var updater = vhs.playlistController_.sourceUpdater_;
-        var codec = media && media.attributes.CODECS;
-        var buffer = updater.videoBuffer;
-        if (!codec || !buffer || !updater.canChangeType() || updater.codecs.video === codec) return;
-        if (codec.split('.')[0] !== updater.codecs.video.split('.')[0]) return updater.changeType('video', codec);
-        var change = function () {
-            if (buffer.updating) return buffer.addEventListener('updateend', change, { once: true });
-            try {
-                buffer.changeType('video/mp4;codecs="' + codec + '"');
-                updater.codecs.video = codec;
-            } catch (e) {
-                console.debug('[VideoJS Debug] changeType to ' + codec + ' failed', e);
-            }
-        };
-        change();
+    var updater = vhs.playlistController_.sourceUpdater_;
+    var appendBuffer = updater.appendBuffer;
+    updater.appendBuffer = function (options, done) {
+        var playlist = options.segmentInfo && options.segmentInfo.playlist;
+        var codec = playlist && playlist.attributes.CODECS;
+        var current = this.codecs.video;
+        if (options.type === 'video' && codec && current && codec !== current && this.videoBuffer && this.canChangeType()) {
+            var a = codec.split('.'), b = current.split('.');
+            if (a[0] === b[0] && a[3] !== b[3]) this.codecs.video = '.' + current;
+            this.changeType('video', codec);
+        }
+        return appendBuffer.call(this, options, done);
     };
-    vhs.playlists.on('mediachange', switchCodec);
-    switchCodec();
 
     var controller = vhs.playlistController_;
     var earlyAbort = controller.mainSegmentLoader_.earlyAbortWhenNeeded_;
