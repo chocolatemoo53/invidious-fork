@@ -611,6 +611,22 @@ if (!window.SourceBuffer && window.ManagedSourceBuffer && new URLSearchParams(lo
 
 var player = videojs('player', options);
 
+if (new URLSearchParams(location.search).has('mediadebug')) setTimeout(function () {
+    var source = window.ManagedMediaSource || window.MediaSource;
+    var supports = function (codec) { return source.isTypeSupported('video/mp4;codecs="' + codec + '"'); };
+    var levels = Array.from(player.qualityLevels()).map(function (l) { return player._qualityMultiSelector._getAttribute(l, 'CODECS'); });
+    alert(JSON.stringify({
+        hdrScreen: matchMedia('(dynamic-range: high)').matches,
+        hdrVideo: matchMedia('(video-dynamic-range: high)').matches,
+        vp9: supports('vp09.00.51.08'),
+        vp9hdr: supports('vp09.02.51.10.01.09.16.09.00'),
+        vp9hdrShort: supports('vp09.02.51.10'),
+        hdrLevels: levels.filter(function (c) { return c.indexOf('vp09.02') === 0; }).length,
+        vp9Levels: levels.filter(function (c) { return c.indexOf('vp09') === 0; }).length,
+        excluded: videojs.log.history().map(function (l) { return l.join(' '); }).filter(function (l) { return /exclud/.test(l) && /vp09\.02/.test(l); }).length
+    }, null, 1));
+}, 8000);
+
 player.on('loadedmetadata', function () {
     var vhs = player.tech(true).vhs;
     if (!vhs || vhs.codecSwitching) return;
