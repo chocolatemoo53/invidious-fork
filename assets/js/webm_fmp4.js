@@ -94,12 +94,18 @@
                 if (id === 0xB0) track.width = uint(b, s, e);
                 else if (id === 0xBA) track.height = uint(b, s, e);
                 else if (id === 0x55B0) eachElement(b, s, e, function (id, s, e) {
+                    if (id === 0x55D0) {
+                        track.mastering = {};
+                        return eachElement(b, s, e, function (id, s, e) { track.mastering[id] = float(b, s, e); });
+                    }
                     var v = uint(b, s, e);
                     if (id === 0x55B2) track.bitDepth = v;
                     else if (id === 0x55B1) track.matrix = v;
                     else if (id === 0x55BA) track.transfer = v;
                     else if (id === 0x55BB) track.primaries = v;
                     else if (id === 0x55B9) track.fullRange = v === 2;
+                    else if (id === 0x55BC) track.maxCLL = v;
+                    else if (id === 0x55BD) track.maxFALL = v;
                 });
             });
         });
@@ -167,6 +173,26 @@
     function vp9Profile(bitDepth) { return bitDepth > 8 ? 2 : 0; }
     function vp9Level(height) { return height > 1080 ? 51 : height > 720 ? 41 : 31; }
 
+    // HDR10 mastering display and light levels: mdcv/clli (ISO BMFF, read by Apple) and
+    // SmDm/CoLL (the VP9-in-MP4 binding)
+    function hdrBoxes(t) {
+        var out = [], m = t.mastering;
+        if (m) {
+            var chroma = function (id, unit) { return u16(Math.round((m[id] || 0) / unit) & 0xffff); };
+            var order = [0x55D3, 0x55D4, 0x55D5, 0x55D6, 0x55D1, 0x55D2, 0x55D7, 0x55D8]; // G, B, R, white
+            out.push(box('mdcv', order.map(function (id) { return chroma(id, 0.00002); })
+                .concat([u32(Math.round((m[0x55D9] || 0) * 10000)), u32(Math.round((m[0x55DA] || 0) * 10000))])));
+            var rgbw = [0x55D1, 0x55D2, 0x55D3, 0x55D4, 0x55D5, 0x55D6, 0x55D7, 0x55D8];
+            out.push(fullBox('SmDm', 0, 0, rgbw.map(function (id) { return chroma(id, 1 / 65536); })
+                .concat([u32(Math.round((m[0x55D9] || 0) * 256)), u32(Math.round((m[0x55DA] || 0) * 16384))])));
+        }
+        if (t.maxCLL !== undefined) {
+            out.push(box('clli', [u16(t.maxCLL), u16(t.maxFALL || 0)]));
+            out.push(fullBox('CoLL', 0, 0, [u16(t.maxCLL), u16(t.maxFALL || 0)]));
+        }
+        return out;
+    }
+
     function initSegment(header, tenBit) {
         var t = header.track, timescale = 1e9 / header.timestampScale;
         var bitDepth = t.bitDepth || (tenBit ? 10 : 8);
@@ -179,7 +205,7 @@
             zeros(6), u16(1), zeros(16), u16(t.width), u16(t.height),
             u32(0x480000), u32(0x480000), u32(0), u16(1), zeros(32), u16(0x18), u16(0xffff), vpcC,
             box('colr', [str('nclx'), u16(t.primaries || 1), u16(t.transfer || 1), u16(t.matrix || 1), u8(t.fullRange ? 0x80 : 0)])
-        ]);
+        ].concat(hdrBoxes(t)));
         var stbl = box('stbl', [
             fullBox('stsd', 0, 0, [u32(1), vp09]),
             fullBox('stts', 0, 0, [u32(0)]),
