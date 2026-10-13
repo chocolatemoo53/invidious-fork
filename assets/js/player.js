@@ -332,9 +332,10 @@ class QualityMultiSelector extends videojs.getComponent('MenuButton') {
       : `${Math.round(bits / 1000)} kbps`;
   }
 
-  selectAuto() {
+  selectAuto(limit) {
     const levels = Array.from(this.player().qualityLevels());
-    const maxHeight = levels.some(l => this._isPremium(l)) ? 1080 : 1440;
+    const cap = Math.min(limit || Infinity, levels.some(l => this._isPremium(l)) ? 1080 : 1440);
+    const maxHeight = Math.max(cap, Math.min(...levels.map(l => l.height)));
     const vp9Heights = new Set(levels.filter(l => this._isVP9(l)).map(l => l.height));
     levels.forEach(l => {
       l.enabled = l.height <= maxHeight && (!vp9Heights.has(l.height) || this._isVP9(l));
@@ -384,8 +385,8 @@ class QualityMultiSelector extends videojs.getComponent('MenuButton') {
     this._updateSelectedMenuItem(index);
   }
 
-  setAuto() {
-    if (this._mode === 'dash') this.selectAuto();
+  setAuto(limit) {
+    if (this._mode === 'dash') this.selectAuto(limit);
   }
 
   setQualityIndex(index) {
@@ -1010,6 +1011,7 @@ if (!video_data.params.listen && video_data.params.quality === 'dash') {
             if (!levels.length) return;
 
             let targetLevel = null;
+            let autoLimit;
 
             switch (video_data.params.quality_dash) {
                 case 'auto':
@@ -1028,26 +1030,8 @@ if (!video_data.params.listen && video_data.params.quality === 'dash') {
                 case 'worst':
                     targetLevel = levels.reduce((a, b) => (a.height < b.height ? a : b), levels[0]);
                     break;
-                default: {
-                    const targetHeight = parseInt(video_data.params.quality_dash);
-                    if (targetHeight >= 1080 && targetHeight <= 1440) {
-                        targetLevel = levels.find(level => player._qualityMultiSelector._isPremium(level));
-                    }
-                    targetLevel = targetLevel || levels
-                        .filter(level => level.height <= targetHeight)
-                        .sort((a, b) => {
-                            const heightDiff = b.height - a.height;
-                            if (heightDiff !== 0) return heightDiff;
-                            const aVP9 = player._qualityMultiSelector._isVP9(a);
-                            const bVP9 = player._qualityMultiSelector._isVP9(b);
-                            if (aVP9 && !bVP9) return -1;
-                            if (!aVP9 && bVP9) return 1;
-                            return (b.bitrate || 0) - (a.bitrate || 0);
-                        })[0];
-                    if (!targetLevel) {
-                        targetLevel = levels.slice().sort((a, b) => b.height - a.height)[0];
-                    }
-                }
+                default:
+                    autoLimit = parseInt(video_data.params.quality_dash) || undefined;
             }
 
             const selector = player._qualityMultiSelector;
@@ -1056,7 +1040,7 @@ if (!video_data.params.listen && video_data.params.quality === 'dash') {
                     const targetIndex = Array.from(player.qualityLevels()).indexOf(targetLevel);
                     selector.setQualityIndex(targetIndex);
                 } else {
-                    selector.setAuto();
+                    selector.setAuto(autoLimit);
                 }
             }
         });
