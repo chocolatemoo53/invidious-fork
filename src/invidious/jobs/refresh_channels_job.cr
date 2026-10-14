@@ -41,6 +41,9 @@ class Invidious::Jobs::RefreshChannelsJob < Invidious::Jobs::BaseJob
             LOGGER.trace("RefreshChannelsJob: #{id} fiber : Updating DB")
             Invidious::Database::Channels.update_author(id, channel.author)
 
+            Invidious::Metrics::REFRESH_SUCCESS.add(1)
+            Invidious::Metrics::REFRESH_BACKOFF.set(0_i64)
+
             if backoff > 2.minutes
               LOGGER.debug("RefreshChannelsJob: #{id} fiber : decreasing backoff to #{backoff}s")
               backoff = 2.minutes
@@ -48,8 +51,11 @@ class Invidious::Jobs::RefreshChannelsJob < Invidious::Jobs::BaseJob
           rescue ex
             LOGGER.error("RefreshChannelsJob: #{id} : #{ex.message}")
             if ex.message == "Deleted or invalid channel"
+              Invidious::Metrics::REFRESH_DELETED.add(1)
               Invidious::Database::Channels.update_mark_deleted(id)
             else
+              Invidious::Metrics::REFRESH_ERROR.add(1)
+              Invidious::Metrics::REFRESH_BACKOFF.set(backoff.total_seconds.to_i64)
               lim_fibers = 1
               LOGGER.error("RefreshChannelsJob: #{id} fiber : backing off for #{backoff}s")
               sleep backoff
@@ -71,6 +77,8 @@ class Invidious::Jobs::RefreshChannelsJob < Invidious::Jobs::BaseJob
           end
         end
       end
+
+      Invidious::Metrics::REFRESH_LAST_PASS.set(Time.utc.to_unix)
 
       LOGGER.debug("RefreshChannelsJob: Done, sleeping for #{CONFIG.channel_refresh_interval}")
       sleep CONFIG.channel_refresh_interval

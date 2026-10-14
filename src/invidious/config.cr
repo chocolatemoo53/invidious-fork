@@ -204,6 +204,7 @@ class Config
   property login_enabled : Bool = true
   property registration_enabled : Bool = true
   property statistics_enabled : Bool = false
+  property metrics_enabled : Bool = false
   property admins : Array(String) = [] of String
   property external_port : Int32? = nil
   property default_user_preferences : ConfigPreferences = ConfigPreferences.from_yaml("")

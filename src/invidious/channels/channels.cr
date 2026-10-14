@@ -256,6 +256,7 @@ def fetch_channel(ucid, pull_all_videos : Bool)
     was_insert = Invidious::Database::ChannelVideos.insert(video)
 
     if was_insert
+      Invidious::Metrics::VIDEOS_FROM_REFRESH.add(1)
       LOGGER.trace("fetch_channel: #{ucid} : video #{video_id} : Inserted, updating subscriptions")
       NOTIFICATION_CHANNEL.send(VideoNotification.from_video(video))
     else
@@ -289,6 +290,7 @@ def fetch_channel(ucid, pull_all_videos : Bool)
         if Time.utc - video.published > 1.minute
           was_insert = Invidious::Database::ChannelVideos.insert(video)
           if was_insert
+            Invidious::Metrics::VIDEOS_FROM_REFRESH.add(1)
             NOTIFICATION_CHANNEL.send(VideoNotification.from_video(video))
           end
         end

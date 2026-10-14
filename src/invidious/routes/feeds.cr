@@ -460,6 +460,7 @@ module Invidious::Routes::Feeds
 
         was_insert = Invidious::Database::ChannelVideos.insert(video, with_premiere_timestamp: true)
         if was_insert
+          Invidious::Metrics::VIDEOS_FROM_PUBSUB.add(1)
           NOTIFICATION_CHANNEL.send(VideoNotification.from_video(video))
         end
       end
