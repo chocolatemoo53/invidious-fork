@@ -280,9 +280,12 @@
 
     function rewriteManifest(request) {
         var doc = new DOMParser().parseFromString(request.responseText, 'application/xml');
-        var sets = doc.querySelectorAll('AdaptationSet[mimeType="video/webm"]');
-        if (!sets.length) return;
-        sets.forEach(function (set) {
+        doc.querySelectorAll('AdaptationSet[mimeType^="audio/"]').forEach(function (set) {
+            Array.from(set.querySelectorAll('Representation')).sort(function (a, b) {
+                return b.getAttribute('bandwidth') - a.getAttribute('bandwidth');
+            }).forEach(function (rep) { set.appendChild(rep); });
+        });
+        doc.querySelectorAll('AdaptationSet[mimeType="video/webm"]').forEach(function (set) {
             set.setAttribute('mimeType', 'video/mp4');
             set.querySelectorAll('Representation').forEach(function (rep) {
                 var codec = rep.getAttribute('codecs') || set.getAttribute('codecs') || '';
