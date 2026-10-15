@@ -53,6 +53,8 @@ class Invidious::Jobs::RefreshChannelsJob < Invidious::Jobs::BaseJob
             if ex.message == "Deleted or invalid channel"
               Invidious::Metrics::REFRESH_DELETED.add(1)
               Invidious::Database::Channels.update_mark_deleted(id)
+            elsif ex.message == "RSS feed unavailable"
+              Invidious::Metrics::REFRESH_UNAVAILABLE.add(1)
             else
               Invidious::Metrics::REFRESH_ERROR.add(1)
               Invidious::Metrics::REFRESH_BACKOFF.set(backoff.total_seconds.to_i64)

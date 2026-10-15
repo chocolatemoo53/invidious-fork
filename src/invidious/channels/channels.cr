@@ -166,9 +166,14 @@ def fetch_channel(ucid, pull_all_videos : Bool)
   }
 
   LOGGER.trace("fetch_channel: #{ucid} : Downloading RSS feed")
-  rss = YT_POOL.client &.get("/feeds/videos.xml?channel_id=#{ucid}").body
+  response = YT_POOL.client &.get("/feeds/videos.xml?channel_id=#{ucid}")
+  2.times do
+    break if response.status_code == 200
+    response = YT_POOL.client &.get("/feeds/videos.xml?channel_id=#{ucid}")
+  end
+  raise InfoException.new("RSS feed unavailable") if response.status_code != 200
   LOGGER.trace("fetch_channel: #{ucid} : Parsing RSS feed")
-  rss = XML.parse(rss)
+  rss = XML.parse(response.body)
 
   author = rss.xpath_node("//default:feed/default:title", namespaces)
   if !author
